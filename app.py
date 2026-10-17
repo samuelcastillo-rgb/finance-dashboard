@@ -557,48 +557,57 @@ tab_etf, tab_stock = st.tabs(["📊 Análisis de ETFs", "🏢 Acciones Individua
 # ==============================================================================
 with tab_etf:
     st.caption("Evaluación de ETFs por comisiones, masa crítica de capital y ratio de Sortino.")
-    if not df_etfs.empty and 'Sortino' in df_etfs.columns and 'Expense_Ratio_%' in df_etfs.columns:
-        best_s = df_etfs.sort_values(by='Sortino', ascending=False).iloc[0]
-        min_t = df_etfs.sort_values(by='Expense_Ratio_%', ascending=True).iloc[0]
-        
-        # Aquí continúa el renderizado de tus tarjetas st.metric / HTML...
+    
+    # 1. Validación de seguridad principal
+    if df_etfs.empty:
+        st.warning("No hay ETFs en el listado activo o hubo un error en la carga. Añade un ETF desde el menú lateral.")
     else:
-        st.info("Cargando métricas de rendimiento y riesgo de los ETFs...")
+        # 2. Renderizado de Tarjetas KPI
         col1, col2, col3, col4 = st.columns(4)
-        top_e = df_etfs.iloc[0]
-        best_s = df_etfs.sort_values(by='Sortino', ascending=False).iloc[0]
-        min_t = df_etfs.sort_values(by='Expense_Ratio_%', ascending=True).iloc[0]
         
-        col1.markdown(f'<div class="kpi-card"><div class="kpi-title">Top ETF</div><div class="kpi-value">{top_e["Ticker"]}</div><div class="kpi-sub">Score: {top_e["Score_Final"]}</div></div>', unsafe_allow_html=True)
-        col2.markdown(f'<div class="kpi-card"><div class="kpi-title">Mayor Sortino</div><div class="kpi-value">{best_s["Ticker"]}</div><div class="kpi-sub">Ratio: {best_s["Sortino"]}</div></div>', unsafe_allow_html=True)
-        col3.markdown(f'<div class="kpi-card"><div class="kpi-title">Menor TER</div><div class="kpi-value">{min_t["Expense_Ratio_%"]}%</div><div class="kpi-sub">{min_t["Ticker"]}</div></div>', unsafe_allow_html=True)
+        # Extracción segura de líderes
+        top_e = df_etfs.iloc[0] if not df_etfs.empty else None
+        best_s = df_etfs.sort_values(by='Sortino', ascending=False).iloc[0] if 'Sortino' in df_etfs.columns else None
+        min_t = df_etfs.sort_values(by='Expense_Ratio_%', ascending=True).iloc[0] if 'Expense_Ratio_%' in df_etfs.columns else None
+        
+        if top_e is not None:
+            col1.markdown(f'<div class="kpi-card"><div class="kpi-title">Top ETF</div><div class="kpi-value">{top_e["Ticker"]}</div><div class="kpi-sub">Score: {top_e["Score_Final"]}</div></div>', unsafe_allow_html=True)
+        if best_s is not None:
+            col2.markdown(f'<div class="kpi-card"><div class="kpi-title">Mayor Sortino</div><div class="kpi-value">{best_s["Ticker"]}</div><div class="kpi-sub">Ratio: {best_s["Sortino"]}</div></div>', unsafe_allow_html=True)
+        if min_t is not None:
+            col3.markdown(f'<div class="kpi-card"><div class="kpi-title">Menor TER</div><div class="kpi-value">{min_t["Expense_Ratio_%"]}%</div><div class="kpi-sub">{min_t["Ticker"]}</div></div>', unsafe_allow_html=True)
+        
         col4.markdown(f'<div class="kpi-card"><div class="kpi-title">ETFs Analizados</div><div class="kpi-value">{len(df_etfs)}</div><div class="kpi-sub">Universo Activo</div></div>', unsafe_allow_html=True)
         
         st.write("")
         c_left, c_right = st.columns([2.2, 1])
         
+        # 3. Renderizado de Gráficas y Tablas
         with c_left:
-            st.subheader("Relación Riesgo vs. Retorno (5 Años)")
-            fig = px.scatter(df_etfs, x='Volatilidad_%', y='CAGR_%', size='AUM_BUSD', color='Score_Final', hover_name='Ticker', text='Ticker', color_continuous_scale=['#EF4444', '#F59E0B', '#1dbe83'])
-            fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='#FFFFFF', font=dict(family="DM Sans", color="#0F172A"), height=360)
-            st.plotly_chart(fig, width='stretch')
+            # Gráfico de Dispersión (Riesgo vs Retorno)
+            if 'Volatilidad_%' in df_etfs.columns and 'CAGR_%' in df_etfs.columns:
+                st.subheader("Relación Riesgo vs. Retorno (5 Años)")
+                fig = px.scatter(
+                    df_etfs, x='Volatilidad_%', y='CAGR_%', size='AUM_BUSD', 
+                    color='Score_Final', hover_name='Ticker', text='Ticker', 
+                    color_continuous_scale=['#EF4444', '#F59E0B', '#1dbe83']
+                )
+                fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='#FFFFFF', font=dict(family="DM Sans", color="#0F172A"), height=360)
+                st.plotly_chart(fig, use_container_width=True)
             
-            st.subheader("Tabla General de ETFs")
-            # 1. Definimos las columnas que NOS GUSTARÍA mostrar (incluyendo 'Nombre' como respaldo)
-            cols_deseadas_etf = ['Ticker', 'Nombre', 'Category', 'Score_Final', 'Expense_Ratio_%', 'AUM_BUSD', 'Sortino', 'CAGR_%']
-            cols_etf_final = [col for col in cols_deseadas_etf if col in df_etfs.columns]
-            
-            # 1. Gráfica de tendencia 6 meses de ETFs
+            # Gráfico de Tendencia 6 Meses
+            st.subheader("Tendencia de Precios (Últimos 6 Meses)")
             tickers_sector_etfs = df_etfs['Ticker'].tolist()
             if tickers_sector_etfs:
                 fig_6m_etfs = generar_grafico_tendencia_6m(
                     tickers_sector_etfs, 
-                    f"Tendencia Relativa (Últimos 6 Meses) - Categoría: {categoria_sel if 'categoria_sel' in locals() else 'Portafolio'}"
+                    f"Rendimiento Acumulado - Categoría: {categoria_sel if 'categoria_sel' in locals() else 'Portafolio'}"
                 )
                 if fig_6m_etfs:
                     st.plotly_chart(fig_6m_etfs, use_container_width=True)
 
-           # 2. Tabla final de ETFs actualizada
+            # Tabla Final de ETFs
+            st.subheader("Tabla General de ETFs")
             cols_deseadas_etf = ['Ticker', 'Nombre', 'Category', 'Score_Final', '52W_Change_%', 'Expense_Ratio_%', 'AUM_BUSD', 'Sortino', 'CAGR_%']
             cols_etf_final = [col for col in cols_deseadas_etf if col in df_etfs.columns]
 
@@ -606,6 +615,7 @@ with tab_etf:
                 df_etfs[cols_etf_final].style
                 .format({
                     'Score_Final': '{:.1f}',
+                    '52W_Change_%': '{:+.2f}%',
                     'Expense_Ratio_%': '{:.2f}%',
                     'Sortino': '{:.2f}',
                     'CAGR_%': '{:.2f}%',
@@ -618,8 +628,9 @@ with tab_etf:
             
         with c_right:
             st.subheader("Líderes por Sector")
-            for _, r in df_etfs.groupby('Category').head(1).head(5).iterrows():
-                st.markdown(f'<div class="leader-card"><b>{r["Ticker"]}</b> | Score: <b style="color:#1dbe83;">{r["Score_Final"]}</b><br><small>{r["Category"]} | TER: {r["Expense_Ratio_%"]}%</small></div>', unsafe_allow_html=True)
+            if 'Category' in df_etfs.columns:
+                for _, r in df_etfs.groupby('Category').head(1).head(6).iterrows():
+                    st.markdown(f'<div class="leader-card"><b>{r["Ticker"]}</b> | Score: <b style="color:#1dbe83;">{r["Score_Final"]}</b><br><small>{r["Category"]} | TER: {r["Expense_Ratio_%"]}%</small></div>', unsafe_allow_html=True)
 
 # ==============================================================================
 # PESTAÑA 2: ACCIONES INDIVIDUALES
