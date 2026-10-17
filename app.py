@@ -153,6 +153,16 @@ if 'etf_list' not in st.session_state or 'stock_list' not in st.session_state:
 # ------------------------------------------------------------------------------
 # 3. FUNCIONES DE CARGA DE DATOS CON CACHÉ DINÁMICO
 # ------------------------------------------------------------------------------
+import requests
+
+# --- ENGAÑO A YAHOO FINANCE PARA NUBE ---
+sesion_http = requests.Session()
+sesion_http.headers.update({
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.5',
+    'Connection': 'keep-alive'
+})
 
 # ------------------------------------------------------------------------------
 # CARGA ROBUSTA DE ETFS (CON EXTRACCIÓN DIRECTA Y NORMALIZACIÓN)
@@ -161,56 +171,45 @@ if 'etf_list' not in st.session_state or 'stock_list' not in st.session_state:
 @st.cache_data(ttl=3600)
 def obtener_metrica_etf_individual(symbol):
     try:
-        etf = yf.Ticker(symbol)
+        # Instanciar pasando la sesión "engañosa"
+        etf = yf.Ticker(symbol, session=sesion_http)
         
-        # 1. Intentar leer info en vivo
         try:
             info = etf.info or {}
         except Exception:
             info = {}
 
-        # 2. Respaldo base desde metadata_cache.json
-        # (Asegúrate de que la llave "etf_list" coincida con tu JSON, o cámbiala por "etfs")
-        fallback = CACHE_GLOBAL.get("etf_list", {}).get(symbol.upper(), {
-            'Nombre': symbol,
-            'Category': 'General',
-            'Expense_Ratio_%': 0.0,
-            'AUM_BUSD': 0.0
+        # Soportar ambas formas posibles en las que se pudo haber guardado el JSON
+        dict_etfs = CACHE_GLOBAL.get("etfs") or CACHE_GLOBAL.get("etf_list") or {}
+        fallback = dict_etfs.get(symbol.upper(), {
+            'Nombre': symbol, 'Category': 'General', 'Expense_Ratio_%': 0.0, 'AUM_BUSD': 0.0
         })
 
-        # 3. Extracción de Nombre (si info en vivo no lo tiene, usa fallback)
-        nombre = info.get('shortName') or info.get('longName') or fallback['Nombre']
+        nombre = info.get('shortName') or info.get('longName') or fallback.get('Nombre', symbol)
 
-        # 4. Extracción de Categoría (si info en vivo falla, usa fallback)
         categoria = (
-            info.get('category') or 
-            info.get('legalType') or 
-            info.get('quoteType') or 
-            info.get('fundFamily')
+            info.get('category') or info.get('legalType') or 
+            info.get('quoteType') or info.get('fundFamily')
         )
         if not categoria or categoria in ['General', 'Sin Categoría']:
-            categoria = fallback['Category']
+            categoria = fallback.get('Category', 'General')
 
-        # 5. Extracción de Expense Ratio (si info falla o es nulo, usa fallback)
         exp_raw = info.get('netExpenseRatio') or info.get('annualReportExpenseRatio') or info.get('expenseRatio')
         if exp_raw is not None and float(exp_raw) > 0:
             exp_float = float(exp_raw)
             exp_ratio = round(exp_float * 100, 3) if exp_float < 0.005 else round(exp_float, 3)
         else:
-            exp_ratio = fallback['Expense_Ratio_%']
+            exp_ratio = fallback.get('Expense_Ratio_%', 0.0)
 
-        # 6. Extracción de AUM (si info falla, usa fallback)
         aum_raw = info.get('totalAssets')
         if aum_raw and float(aum_raw) > 0:
             aum_busd = round(float(aum_raw) / 1e9, 2)
         else:
-            aum_busd = fallback['AUM_BUSD']
+            aum_busd = fallback.get('AUM_BUSD', 0.0)
 
-        # 7. 52-Week Change (esta no suele estar en el fallback, así que si falla es 0.0)
         raw_52w = info.get('52WeekChange')
         change_52w = round(float(raw_52w) * 100, 2) if raw_52w is not None else 0.0
 
-        # Ahora sí, armamos el diccionario fund usando las variables validadas
         fund = {
             'Nombre': nombre,
             'Category': categoria,
@@ -219,9 +218,8 @@ def obtener_metrica_etf_individual(symbol):
             '52W_Change_%': change_52w
         }
 
-        # Rendimiento histórico (5 años)
         try:
-            perf = sr.calculate_etf_performance(symbol, period="5y") if hasattr(sr, 'calculate_etf_performance') else {}
+            perf = sr.calculate_etf_performance(symbol, period="5y") if hasattr(sr, 'calculate_etf_performance') else sr.calculate_stock_performance(symbol, period="5y")
         except:
             perf = {}
 
@@ -231,7 +229,6 @@ def obtener_metrica_etf_individual(symbol):
         return reg
     except Exception:
         return None
-
 
 def cargar_datos_etfs(universo_tuple):
     resultados = []
@@ -245,14 +242,9 @@ def cargar_datos_etfs(universo_tuple):
         
     df = pd.DataFrame(resultados)
     
-    # --- GARANTÍA DE COLUMNAS FUNDAMENTALES Y DE RENDIMIENTO ---
     columnas_default = {
-        'Category': 'General',
-        'Expense_Ratio_%': 0.0,
-        'AUM_BUSD': 0.0,
-        'Sortino': 0.0,
-        'CAGR_%': 0.0,
-        '52W_Change_%': 0.0
+        'Category': 'General', 'Expense_Ratio_%': 0.0, 'AUM_BUSD': 0.0,
+        'Sortino': 0.0, 'CAGR_%': 0.0, '52W_Change_%': 0.0
     }
     
     for col, default_val in columnas_default.items():
@@ -264,18 +256,12 @@ def cargar_datos_etfs(universo_tuple):
             else:
                 df[col] = df[col].fillna(default_val)
 
-    # 1. Percentil de Expense Ratio
     df['Pctl_Exp_Ratio_Inv'] = (1 - df['Expense_Ratio_%'].rank(pct=True, ascending=True)) * 100
-
-    # 2. Percentiles de Rendimiento y Riesgo
     df['Pctl_Sortino'] = df['Sortino'].rank(pct=True, ascending=True) * 100
     df['Pctl_CAGR'] = df['CAGR_%'].rank(pct=True, ascending=True) * 100
 
-    # 3. Score Ponderado
     df['Score_Final'] = (
-        (0.40 * df['Pctl_Sortino']) +
-        (0.40 * df['Pctl_CAGR']) +
-        (0.20 * df['Pctl_Exp_Ratio_Inv'])
+        (0.40 * df['Pctl_Sortino']) + (0.40 * df['Pctl_CAGR']) + (0.20 * df['Pctl_Exp_Ratio_Inv'])
     ).round(1)
     
     return df.sort_values(by='Score_Final', ascending=False)
@@ -287,37 +273,31 @@ def cargar_datos_etfs(universo_tuple):
 @st.cache_data(ttl=3600)
 def obtener_metrica_individual(symbol):
     try:
-        stock = yf.Ticker(symbol)
+        # Pasar sesión engañosa
+        stock = yf.Ticker(symbol, session=sesion_http)
         
-        # 1. Intentar leer info en vivo
         try:
             info = stock.info or {}
         except Exception:
             info = {}
 
-        # 2. Respaldo base desde metadata_cache.json
-        # (Asegúrate de que la llave coincida con la que usaste en tu JSON: "stocks" o "stock_list")
-        fallback = CACHE_GLOBAL.get("stock_list", {}).get(symbol.upper(), {
-            'Empresa': symbol,
-            'Sector': 'General'
+        dict_stocks = CACHE_GLOBAL.get("stocks") or CACHE_GLOBAL.get("stock_list") or {}
+        fallback = dict_stocks.get(symbol.upper(), {
+            'Empresa': symbol, 'Sector': 'General'
         })
 
-        # 3. Extracción de Nombre (si info en vivo falla, usa fallback)
         empresa = info.get('shortName') or info.get('longName') or fallback.get('Empresa', symbol)
 
-        # 4. Extracción de Sector (si info en vivo falla o viene vacío, usa fallback)
         sector = info.get('sector') or info.get('industry')
         if not sector or sector in ['General', 'Sin Sector']:
             sector = fallback.get('Sector', 'General')
 
-        # 5. 52-Week Change (%)
         try:
             raw_52w = info.get('52WeekChange')
             change_52w = round(float(raw_52w) * 100, 2) if raw_52w is not None else 0.0
         except Exception:
             change_52w = 0.0
 
-        # 6. Extracción de Estados Financieros para CAGRs
         try:
             bs = stock.balance_sheet
             cf = stock.cashflow
@@ -325,28 +305,24 @@ def obtener_metrica_individual(symbol):
         except Exception:
             bs, cf, fin = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
         
-        # CAGR Stockholders' Equity
         try:
             clave_eq = next((k for k in ['Stockholders Equity', 'Total Equity Gross Minority Interest', 'Common Stock Equity'] if k in bs.index), None)
             cagr_equity = sr.calcular_cagr_serie(bs.loc[clave_eq]) if clave_eq is not None else 0.0
         except Exception:
             cagr_equity = 0.0
 
-        # CAGR Free Cash Flow
         try:
             clave_fcf = next((k for k in ['Free Cash Flow', 'FreeCashFlow'] if k in cf.index), None)
             cagr_fcf = sr.calcular_cagr_serie(cf.loc[clave_fcf]) if clave_fcf is not None else 0.0
         except Exception:
             cagr_fcf = 0.0
 
-        # CAGR EBITDA
         try:
             clave_ebitda = next((k for k in ['Normalized EBITDA', 'EBITDA'] if k in fin.index), None)
             cagr_ebitda = sr.calcular_cagr_serie(fin.loc[clave_ebitda]) if clave_ebitda is not None else 0.0
         except Exception:
             cagr_ebitda = 0.0
 
-        # 7. Fundamentales base (ROIC, Margen Neto, etc.) y Performance
         try:
             fund = sr.get_stock_fundamentals(stock) if hasattr(sr, 'get_stock_fundamentals') else {}
         except Exception:
@@ -357,7 +333,6 @@ def obtener_metrica_individual(symbol):
         except Exception:
             perf = {}
         
-        # 8. Consolidación de todos los datos en un solo registro
         reg = {
             'Ticker': symbol,
             'Empresa': empresa,
@@ -368,19 +343,14 @@ def obtener_metrica_individual(symbol):
             'CAGR_EBITDA_%': cagr_ebitda
         }
         
-        # Actualizamos el registro sobrescribiendo de ser necesario, pero asegurando que 
-        # Empresa y Sector no queden vacíos si la librería 'sr' no los obtuvo bien.
-        if 'Empresa' in fund:
-            del fund['Empresa']
-        if 'Sector' in fund:
-            del fund['Sector']
+        if 'Empresa' in fund: del fund['Empresa']
+        if 'Sector' in fund: del fund['Sector']
 
         reg.update(fund)
         reg.update(perf)
         return reg
 
     except Exception:
-        # En caso de fallo crítico, retorna un registro mínimo para que la aplicación no colapse
         return {'Ticker': symbol, 'Score_Final': 0, 'Sector': 'General', 'Empresa': symbol}
 
 # 2. Orquestador: Itera la lista recuperando del caché instantáneo lo existente
@@ -628,8 +598,8 @@ with tab_etf:
                 if fig_6m_etfs:
                     st.plotly_chart(fig_6m_etfs, use_container_width=True)
 
-            # 2. Tabla final de ETFs actualizada
-            cols_deseadas_etf = ['Ticker', 'Nombre', 'Category', 'Score_Final', 'Expense_Ratio_%', 'AUM_BUSD', 'Sortino', 'CAGR_%']
+           # 2. Tabla final de ETFs actualizada
+            cols_deseadas_etf = ['Ticker', 'Nombre', 'Category', 'Score_Final', '52W_Change_%', 'Expense_Ratio_%', 'AUM_BUSD', 'Sortino', 'CAGR_%']
             cols_etf_final = [col for col in cols_deseadas_etf if col in df_etfs.columns]
 
             st.dataframe(
