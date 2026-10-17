@@ -234,7 +234,6 @@ def obtener_metrica_etf_individual(symbol):
 
 
 def cargar_datos_etfs(universo_tuple):
-    """Consolida el DataFrame de ETFs y garantiza la existencia de todas las columnas."""
     resultados = []
     for symbol in universo_tuple:
         datos_etf = obtener_metrica_etf_individual(symbol)
@@ -246,25 +245,31 @@ def cargar_datos_etfs(universo_tuple):
         
     df = pd.DataFrame(resultados)
     
-    # --- GARANTÍA DE CATEGORÍA ---
-    col_cat = next((c for c in ['Category', 'Categoria', 'category', 'Sector'] if c in df.columns), None)
-    df['Category'] = df[col_cat].fillna('General') if col_cat else 'General'
+    # --- GARANTÍA DE COLUMNAS FUNDAMENTALES Y DE RENDIMIENTO ---
+    columnas_default = {
+        'Category': 'General',
+        'Expense_Ratio_%': 0.0,
+        'AUM_BUSD': 0.0,
+        'Sortino': 0.0,
+        'CAGR_%': 0.0,
+        '52W_Change_%': 0.0
+    }
+    
+    for col, default_val in columnas_default.items():
+        if col not in df.columns:
+            df[col] = default_val
+        else:
+            if isinstance(default_val, (int, float)):
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(default_val)
+            else:
+                df[col] = df[col].fillna(default_val)
 
-    # --- GARANTÍA DE EXPENSE RATIO ---
-    col_exp = next((c for c in ['Expense_Ratio_%', 'Expense_Ratio', 'expenseRatio', 'netExpenseRatio'] if c in df.columns), None)
-    if col_exp and col_exp != 'Expense_Ratio_%':
-        df['Expense_Ratio_%'] = pd.to_numeric(df[col_exp], errors='coerce').fillna(0.0)
-    elif 'Expense_Ratio_%' not in df.columns:
-        df['Expense_Ratio_%'] = 0.0
-    else:
-        df['Expense_Ratio_%'] = pd.to_numeric(df['Expense_Ratio_%'], errors='coerce').fillna(0.0)
-
-    # 1. Percentil Expense Ratio (Menor comisión es mejor -> Rango inverso)
+    # 1. Percentil de Expense Ratio
     df['Pctl_Exp_Ratio_Inv'] = (1 - df['Expense_Ratio_%'].rank(pct=True, ascending=True)) * 100
 
     # 2. Percentiles de Rendimiento y Riesgo
-    df['Pctl_Sortino'] = df['Sortino'].rank(pct=True, ascending=True) * 100 if 'Sortino' in df.columns else 50.0
-    df['Pctl_CAGR'] = df['CAGR_%'].rank(pct=True, ascending=True) * 100 if 'CAGR_%' in df.columns else 50.0
+    df['Pctl_Sortino'] = df['Sortino'].rank(pct=True, ascending=True) * 100
+    df['Pctl_CAGR'] = df['CAGR_%'].rank(pct=True, ascending=True) * 100
 
     # 3. Score Ponderado
     df['Score_Final'] = (
@@ -582,9 +587,13 @@ tab_etf, tab_stock = st.tabs(["📊 Análisis de ETFs", "🏢 Acciones Individua
 # ==============================================================================
 with tab_etf:
     st.caption("Evaluación de ETFs por comisiones, masa crítica de capital y ratio de Sortino.")
-    if df_etfs.empty:
-        st.warning("No hay ETFs en el listado activo. Agrega al menos uno desde el gestor lateral.")
+    if not df_etfs.empty and 'Sortino' in df_etfs.columns and 'Expense_Ratio_%' in df_etfs.columns:
+        best_s = df_etfs.sort_values(by='Sortino', ascending=False).iloc[0]
+        min_t = df_etfs.sort_values(by='Expense_Ratio_%', ascending=True).iloc[0]
+        
+        # Aquí continúa el renderizado de tus tarjetas st.metric / HTML...
     else:
+        st.info("Cargando métricas de rendimiento y riesgo de los ETFs...")
         col1, col2, col3, col4 = st.columns(4)
         top_e = df_etfs.iloc[0]
         best_s = df_etfs.sort_values(by='Sortino', ascending=False).iloc[0]
