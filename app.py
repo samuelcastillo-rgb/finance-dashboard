@@ -7,6 +7,13 @@ import plotly.express as px
 import etf_ratios as er
 import stock_ratios as sr
 
+# Carga automática del respaldo consolidado
+try:
+    with open("metadata_cache.json", "r", encoding="utf-8") as f:
+        CACHE_GLOBAL = json.load(f)
+except Exception:
+    CACHE_GLOBAL = {"etf_list": {}, "stock_list": {}}
+
 # ------------------------------------------------------------------------------
 # 1. CONFIGURACIÓN DE PÁGINA Y ESTILOS CSS CORREGIDOS
 # ------------------------------------------------------------------------------
@@ -155,25 +162,68 @@ if 'etf_list' not in st.session_state or 'stock_list' not in st.session_state:
 def obtener_metrica_etf_individual(symbol):
     try:
         etf = yf.Ticker(symbol)
-        info = etf.info or {}
         
+        # 1. Intentar leer info en vivo
+        try:
+            info = etf.info or {}
+        except Exception:
+            info = {}
+
+        # 2. Respaldo base desde metadata_cache.json
+        # (Asegúrate de que la llave "etf_list" coincida con tu JSON, o cámbiala por "etfs")
+        fallback = CACHE_GLOBAL.get("etf_list", {}).get(symbol.upper(), {
+            'Nombre': symbol,
+            'Category': 'General',
+            'Expense_Ratio_%': 0.0,
+            'AUM_BUSD': 0.0
+        })
+
+        # 3. Extracción de Nombre (si info en vivo no lo tiene, usa fallback)
+        nombre = info.get('shortName') or info.get('longName') or fallback['Nombre']
+
+        # 4. Extracción de Categoría (si info en vivo falla, usa fallback)
+        categoria = (
+            info.get('category') or 
+            info.get('legalType') or 
+            info.get('quoteType') or 
+            info.get('fundFamily')
+        )
+        if not categoria or categoria in ['General', 'Sin Categoría']:
+            categoria = fallback['Category']
+
+        # 5. Extracción de Expense Ratio (si info falla o es nulo, usa fallback)
+        exp_raw = info.get('netExpenseRatio') or info.get('annualReportExpenseRatio') or info.get('expenseRatio')
+        if exp_raw is not None and float(exp_raw) > 0:
+            exp_float = float(exp_raw)
+            exp_ratio = round(exp_float * 100, 3) if exp_float < 0.005 else round(exp_float, 3)
+        else:
+            exp_ratio = fallback['Expense_Ratio_%']
+
+        # 6. Extracción de AUM (si info falla, usa fallback)
+        aum_raw = info.get('totalAssets')
+        if aum_raw and float(aum_raw) > 0:
+            aum_busd = round(float(aum_raw) / 1e9, 2)
+        else:
+            aum_busd = fallback['AUM_BUSD']
+
+        # 7. 52-Week Change (esta no suele estar en el fallback, así que si falla es 0.0)
         raw_52w = info.get('52WeekChange')
-        change_52w = round(raw_52w * 100, 2) if raw_52w is not None else 0.0
+        change_52w = round(float(raw_52w) * 100, 2) if raw_52w is not None else 0.0
 
-        # Expense ratio normalizado
-        exp_raw = info.get('netExpenseRatio') or info.get('annualReportExpenseRatio') or info.get('expenseRatio') or 0.0
-        exp_float = float(exp_raw)
-        exp_ratio = round(exp_float * 100, 3) if 0 < exp_float < 0.005 else round(exp_float, 3)
-
+        # Ahora sí, armamos el diccionario fund usando las variables validadas
         fund = {
-            'Nombre': info.get('shortName', symbol),
-            'Category': info.get('category') or info.get('legalType') or 'General',
+            'Nombre': nombre,
+            'Category': categoria,
             'Expense_Ratio_%': exp_ratio,
-            'AUM_BUSD': round((info.get('totalAssets') or 0) / 1e9, 2),
+            'AUM_BUSD': aum_busd,
             '52W_Change_%': change_52w
         }
 
-        perf = sr.calculate_etf_performance(symbol, period="5y") if hasattr(sr, 'calculate_etf_performance') else sr.calculate_stock_performance(symbol, period="5y")
+        # Rendimiento histórico (5 años)
+        try:
+            perf = sr.calculate_etf_performance(symbol, period="5y") if hasattr(sr, 'calculate_etf_performance') else {}
+        except:
+            perf = {}
 
         reg = {'Ticker': symbol}
         reg.update(fund)
@@ -225,21 +275,44 @@ def cargar_datos_etfs(universo_tuple):
     
     return df.sort_values(by='Score_Final', ascending=False)
 
-# 1. Caché individual: Si ya se descargó AAPL, nunca se vuelve a consultar a internet en 1 hora
+# ------------------------------------------------------------------------------
+# CARGA INDIVIDUAL DE ACCIONES (BLINDADA CON CACHÉ Y FALLBACK)
+# ------------------------------------------------------------------------------
+
 @st.cache_data(ttl=3600)
 def obtener_metrica_individual(symbol):
     try:
         stock = yf.Ticker(symbol)
-        info = stock.info or {}
         
-        # 1. 52-Week Change (%) - Protegido
+        # 1. Intentar leer info en vivo
+        try:
+            info = stock.info or {}
+        except Exception:
+            info = {}
+
+        # 2. Respaldo base desde metadata_cache.json
+        # (Asegúrate de que la llave coincida con la que usaste en tu JSON: "stocks" o "stock_list")
+        fallback = CACHE_GLOBAL.get("stock_list", {}).get(symbol.upper(), {
+            'Empresa': symbol,
+            'Sector': 'General'
+        })
+
+        # 3. Extracción de Nombre (si info en vivo falla, usa fallback)
+        empresa = info.get('shortName') or info.get('longName') or fallback.get('Empresa', symbol)
+
+        # 4. Extracción de Sector (si info en vivo falla o viene vacío, usa fallback)
+        sector = info.get('sector') or info.get('industry')
+        if not sector or sector in ['General', 'Sin Sector']:
+            sector = fallback.get('Sector', 'General')
+
+        # 5. 52-Week Change (%)
         try:
             raw_52w = info.get('52WeekChange')
             change_52w = round(float(raw_52w) * 100, 2) if raw_52w is not None else 0.0
         except Exception:
             change_52w = 0.0
 
-        # 2. Extracción de Estados Financieros para CAGRs - Protegido
+        # 6. Extracción de Estados Financieros para CAGRs
         try:
             bs = stock.balance_sheet
             cf = stock.cashflow
@@ -268,7 +341,7 @@ def obtener_metrica_individual(symbol):
         except Exception:
             cagr_ebitda = 0.0
 
-        # Fundamentales base y Performance
+        # 7. Fundamentales base (ROIC, Margen Neto, etc.) y Performance
         try:
             fund = sr.get_stock_fundamentals(stock) if hasattr(sr, 'get_stock_fundamentals') else {}
         except Exception:
@@ -279,20 +352,31 @@ def obtener_metrica_individual(symbol):
         except Exception:
             perf = {}
         
+        # 8. Consolidación de todos los datos en un solo registro
         reg = {
             'Ticker': symbol,
+            'Empresa': empresa,
+            'Sector': sector,
             '52W_Change_%': change_52w,
             'CAGR_Equity_%': cagr_equity,
             'CAGR_FCF_%': cagr_fcf,
             'CAGR_EBITDA_%': cagr_ebitda
         }
+        
+        # Actualizamos el registro sobrescribiendo de ser necesario, pero asegurando que 
+        # Empresa y Sector no queden vacíos si la librería 'sr' no los obtuvo bien.
+        if 'Empresa' in fund:
+            del fund['Empresa']
+        if 'Sector' in fund:
+            del fund['Sector']
+
         reg.update(fund)
         reg.update(perf)
         return reg
+
     except Exception:
-        # En caso de catástrofe total con el ticker, devuelve un registro vacío con puros ceros 
-        # para que la tabla siga existiendo y dibujándose
-        return {'Ticker': symbol, 'Score_Final': 0}
+        # En caso de fallo crítico, retorna un registro mínimo para que la aplicación no colapse
+        return {'Ticker': symbol, 'Score_Final': 0, 'Sector': 'General', 'Empresa': symbol}
 
 # 2. Orquestador: Itera la lista recuperando del caché instantáneo lo existente
 def cargar_datos_acciones(universo_tuple):
