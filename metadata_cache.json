@@ -1,0 +1,977 @@
+{
+    "etf_list": {
+        "CIBR": {
+            "Nombre": "First Trust NASDAQ Cybersecurit",
+            "Category": "Technology",
+            "Expense_Ratio_%": 0.58,
+            "AUM_BUSD": 17.32
+        },
+        "FIDU": {
+            "Nombre": "Fidelity MSCI Industrials Index",
+            "Category": "Industrials",
+            "Expense_Ratio_%": 0.084,
+            "AUM_BUSD": 2.32
+        },
+        "XLV": {
+            "Nombre": "State Street Health Care Select",
+            "Category": "Health",
+            "Expense_Ratio_%": 0.08,
+            "AUM_BUSD": 43.39
+        },
+        "FIW": {
+            "Nombre": "First Trust Water ETF",
+            "Category": "Miscellaneous Sector",
+            "Expense_Ratio_%": 0.5,
+            "AUM_BUSD": 1.71
+        },
+        "PHO": {
+            "Nombre": "Invesco Water Resources ETF",
+            "Category": "Miscellaneous Sector",
+            "Expense_Ratio_%": 0.59,
+            "AUM_BUSD": 1.89
+        },
+        "CGW": {
+            "Nombre": "Invesco S&P Global Water Index ",
+            "Category": "Miscellaneous Sector",
+            "Expense_Ratio_%": 0.58,
+            "AUM_BUSD": 1.01
+        },
+        "PIO": {
+            "Nombre": "Invesco Global Water ETF",
+            "Category": "Miscellaneous Sector",
+            "Expense_Ratio_%": 0.75,
+            "AUM_BUSD": 0.26
+        },
+        "AQWA": {
+            "Nombre": "Global X Clean Water ETF",
+            "Category": "Miscellaneous Sector",
+            "Expense_Ratio_%": 0.5,
+            "AUM_BUSD": 0.02
+        },
+        "QTUM": {
+            "Nombre": "Defiance Quantum ETF",
+            "Category": "Technology",
+            "Expense_Ratio_%": 0.4,
+            "AUM_BUSD": 5.64
+        },
+        "XQBT": {
+            "Nombre": "Amplify Top 10 Quantum ETF",
+            "Category": "Technology",
+            "Expense_Ratio_%": 0.49,
+            "AUM_BUSD": 0.0
+        },
+        "WQTM": {
+            "Nombre": "WisdomTree Quantum Computing Fu",
+            "Category": "Technology",
+            "Expense_Ratio_%": 0.45,
+            "AUM_BUSD": 0.35
+        },
+        "QTUP": {
+            "Nombre": "Defiance Long Pure Quantum ETF",
+            "Category": "Technology",
+            "Expense_Ratio_%": 0.77,
+            "AUM_BUSD": 0.02
+        },
+        "BOTZ": {
+            "Nombre": "Global X Robotics & Artificial ",
+            "Category": "Technology",
+            "Expense_Ratio_%": 0.68,
+            "AUM_BUSD": 3.33
+        },
+        "ROBX": {
+            "Nombre": "Amplify Top 10 Robotics ETF",
+            "Category": "Industrials",
+            "Expense_Ratio_%": 0.49,
+            "AUM_BUSD": 0.0
+        },
+        "AIQ": {
+            "Nombre": "Global X Artificial Intelligenc",
+            "Category": "Technology",
+            "Expense_Ratio_%": 0.68,
+            "AUM_BUSD": 10.33
+        },
+        "XLI": {
+            "Nombre": "State Street Industrial Select ",
+            "Category": "Industrials",
+            "Expense_Ratio_%": 0.08,
+            "AUM_BUSD": 29.83
+        },
+        "VIS": {
+            "Nombre": "Vanguard Industrials ETF",
+            "Category": "Industrials",
+            "Expense_Ratio_%": 0.09,
+            "AUM_BUSD": 8.55
+        },
+        "PAVE": {
+            "Nombre": "Global X U.S. Infrastructure De",
+            "Category": "Infrastructure",
+            "Expense_Ratio_%": 0.47,
+            "AUM_BUSD": 13.36
+        },
+        "ITA": {
+            "Nombre": "iShares U.S. Aerospace & Defens",
+            "Category": "Industrials",
+            "Expense_Ratio_%": 0.37,
+            "AUM_BUSD": 12.14
+        },
+        "GRID": {
+            "Nombre": "First Trust NASDAQ Clean Edge S",
+            "Category": "Infrastructure",
+            "Expense_Ratio_%": 0.56,
+            "AUM_BUSD": 11.87
+        },
+        "QQQ": {
+            "Nombre": "Invesco QQQ Trust, Series 1",
+            "Category": "Large Growth",
+            "Expense_Ratio_%": 0.18,
+            "AUM_BUSD": 498.95
+        },
+        "VGT": {
+            "Nombre": "Vanguard Information Tech ETF",
+            "Category": "Technology",
+            "Expense_Ratio_%": 0.09,
+            "AUM_BUSD": 177.93
+        },
+        "XLK": {
+            "Nombre": "State Street Technology Select ",
+            "Category": "Technology",
+            "Expense_Ratio_%": 0.08,
+            "AUM_BUSD": 127.3
+        },
+        "QQQM": {
+            "Nombre": "Invesco NASDAQ 100 ETF",
+            "Category": "Large Growth",
+            "Expense_Ratio_%": 0.15,
+            "AUM_BUSD": 109.81
+        },
+        "SMH": {
+            "Nombre": "VanEck Semiconductor ETF",
+            "Category": "Technology",
+            "Expense_Ratio_%": 0.35,
+            "AUM_BUSD": 74.88
+        },
+        "SOXX": {
+            "Nombre": "iShares PHLX SOX Semiconductor ",
+            "Category": "Technology",
+            "Expense_Ratio_%": 0.33,
+            "AUM_BUSD": 48.43
+        },
+        "VOO": {
+            "Nombre": "Vanguard S&P 500 ETF",
+            "Category": "Large Blend",
+            "Expense_Ratio_%": 0.03,
+            "AUM_BUSD": 1729.31
+        },
+        "IVV": {
+            "Nombre": "iShares Core S&P 500 ETF",
+            "Category": "Large Blend",
+            "Expense_Ratio_%": 0.03,
+            "AUM_BUSD": 881.27
+        },
+        "SPY": {
+            "Nombre": "State Street SPDR S&P 500 ETF T",
+            "Category": "Large Blend",
+            "Expense_Ratio_%": 0.095,
+            "AUM_BUSD": 809.22
+        },
+        "VTI": {
+            "Nombre": "Vanguard Morningstar Total Stoc",
+            "Category": "Large Blend",
+            "Expense_Ratio_%": 0.03,
+            "AUM_BUSD": 2322.1
+        },
+        "XLC": {
+            "Nombre": "State Street Communication Serv",
+            "Category": "Communications",
+            "Expense_Ratio_%": 0.08,
+            "AUM_BUSD": 22.53
+        },
+        "VOX": {
+            "Nombre": "Vanguard Communication Services",
+            "Category": "Communications",
+            "Expense_Ratio_%": 0.09,
+            "AUM_BUSD": 6.3
+        },
+        "FCOM": {
+            "Nombre": "Fidelity MSCI Communication Ser",
+            "Category": "Communications",
+            "Expense_Ratio_%": 0.084,
+            "AUM_BUSD": 1.78
+        },
+        "IYZ": {
+            "Nombre": "iShares U.S. Telecommunications",
+            "Category": "Communications",
+            "Expense_Ratio_%": 0.37,
+            "AUM_BUSD": 1.06
+        },
+        "VHT": {
+            "Nombre": "Vanguard Health Care ETF",
+            "Category": "Health",
+            "Expense_Ratio_%": 0.09,
+            "AUM_BUSD": 21.81
+        },
+        "IBB": {
+            "Nombre": "iShares Biotechnology ETF",
+            "Category": "Health",
+            "Expense_Ratio_%": 0.44,
+            "AUM_BUSD": 11.2
+        },
+        "XBI": {
+            "Nombre": "State Street SPDR S&P Biotech E",
+            "Category": "Health",
+            "Expense_Ratio_%": 0.35,
+            "AUM_BUSD": 10.36
+        },
+        "XLY": {
+            "Nombre": "State Street Consumer Discretio",
+            "Category": "Consumer Cyclical",
+            "Expense_Ratio_%": 0.08,
+            "AUM_BUSD": 21.27
+        },
+        "VCR": {
+            "Nombre": "Vanguard Consumer Discretion ET",
+            "Category": "Consumer Cyclical",
+            "Expense_Ratio_%": 0.09,
+            "AUM_BUSD": 6.15
+        },
+        "IYC": {
+            "Nombre": "iShares U.S. Consumer Discretio",
+            "Category": "Consumer Cyclical",
+            "Expense_Ratio_%": 0.37,
+            "AUM_BUSD": 1.17
+        },
+        "XLE": {
+            "Nombre": "State Street Energy Select Sect",
+            "Category": "Equity Energy",
+            "Expense_Ratio_%": 0.08,
+            "AUM_BUSD": 39.13
+        },
+        "AMLP": {
+            "Nombre": "Alerian MLP ETF",
+            "Category": "Energy Limited Partnership",
+            "Expense_Ratio_%": 1.01,
+            "AUM_BUSD": 12.62
+        },
+        "VDE": {
+            "Nombre": "Vanguard Energy ETF",
+            "Category": "Equity Energy",
+            "Expense_Ratio_%": 0.09,
+            "AUM_BUSD": 12.67
+        },
+        "XOP": {
+            "Nombre": "State Street SPDR S&P Oil & Gas",
+            "Category": "Equity Energy",
+            "Expense_Ratio_%": 0.35,
+            "AUM_BUSD": 3.62
+        },
+        "XLP": {
+            "Nombre": "State Street Consumer Staples S",
+            "Category": "Consumer Defensive",
+            "Expense_Ratio_%": 0.08,
+            "AUM_BUSD": 13.45
+        },
+        "VDC": {
+            "Nombre": "Vanguard Consumer Staples ETF",
+            "Category": "Consumer Defensive",
+            "Expense_Ratio_%": 0.09,
+            "AUM_BUSD": 8.7
+        },
+        "IYK": {
+            "Nombre": "iShares U.S. Consumer Staples E",
+            "Category": "Consumer Defensive",
+            "Expense_Ratio_%": 0.37,
+            "AUM_BUSD": 1.59
+        },
+        "GDX": {
+            "Nombre": "VanEck Gold Miners ETF",
+            "Category": "Equity Precious Metals",
+            "Expense_Ratio_%": 0.51,
+            "AUM_BUSD": 26.25
+        },
+        "XLB": {
+            "Nombre": "State Street Materials Select S",
+            "Category": "Natural Resources",
+            "Expense_Ratio_%": 0.08,
+            "AUM_BUSD": 7.78
+        },
+        "COPX": {
+            "Nombre": "Global X Copper Miners ETF",
+            "Category": "Natural Resources",
+            "Expense_Ratio_%": 0.65,
+            "AUM_BUSD": 7.25
+        },
+        "VAW": {
+            "Nombre": "Vanguard Materials ETF",
+            "Category": "Natural Resources",
+            "Expense_Ratio_%": 0.09,
+            "AUM_BUSD": 4.49
+        },
+        "XLU": {
+            "Nombre": "State Street Utilities Select S",
+            "Category": "Utilities",
+            "Expense_Ratio_%": 0.08,
+            "AUM_BUSD": 21.33
+        },
+        "VPU": {
+            "Nombre": "Vanguard Utilities ETF",
+            "Category": "Utilities",
+            "Expense_Ratio_%": 0.09,
+            "AUM_BUSD": 9.47
+        },
+        "HACK": {
+            "Nombre": "Amplify Cybersecurity ETF",
+            "Category": "Technology",
+            "Expense_Ratio_%": 0.6,
+            "AUM_BUSD": 3.33
+        },
+        "IHAK": {
+            "Nombre": "iShares Cybersecurity and Tech ",
+            "Category": "Technology",
+            "Expense_Ratio_%": 0.47,
+            "AUM_BUSD": 1.16
+        },
+        "CBRZ": {
+            "Nombre": "Tradr 2X Short CBRS Daily ETF",
+            "Category": "Trading--Inverse Equity",
+            "Expense_Ratio_%": 1.49,
+            "AUM_BUSD": 0.0
+        },
+        "LITZ": {
+            "Nombre": "Tradr 2X Short LITE Daily ETF",
+            "Category": "Trading--Inverse Equity",
+            "Expense_Ratio_%": 1.49,
+            "AUM_BUSD": 0.02
+        },
+        "IONZ": {
+            "Nombre": "Defiance Daily Target 2x Short ",
+            "Category": "Trading--Inverse Equity",
+            "Expense_Ratio_%": 1.91,
+            "AUM_BUSD": 0.01
+        },
+        "CBRG": {
+            "Nombre": "Leverage Shares 2X Long CBRS Da",
+            "Category": "Trading--Leveraged Equity",
+            "Expense_Ratio_%": 0.75,
+            "AUM_BUSD": 0.06
+        },
+        "SMTG": {
+            "Nombre": "Leverage Shares 2X Long SMTC Da",
+            "Category": "Trading--Leveraged Equity",
+            "Expense_Ratio_%": 0.99,
+            "AUM_BUSD": 0.01
+        },
+        "CBRX": {
+            "Nombre": "Tradr 2X Long CBRS Daily ETF",
+            "Category": "Exchange Traded Fund",
+            "Expense_Ratio_%": 0.0,
+            "AUM_BUSD": 0.0
+        },
+        "CIEX": {
+            "Nombre": "Tradr 2X Long CIEN Daily ETF",
+            "Category": "Trading--Leveraged Equity",
+            "Expense_Ratio_%": 1.49,
+            "AUM_BUSD": 0.0
+        },
+        "LITU": {
+            "Nombre": "T-REX 2X Long LITE Daily Target",
+            "Category": "Trading--Leveraged Equity",
+            "Expense_Ratio_%": 1.5,
+            "AUM_BUSD": 0.01
+        },
+        "RING": {
+            "Nombre": "iShares MSCI Global Gold Miners",
+            "Category": "Equity Precious Metals",
+            "Expense_Ratio_%": 0.39,
+            "AUM_BUSD": 2.31
+        },
+        "SGDM": {
+            "Nombre": "Sprott Gold Miners ETF",
+            "Category": "Equity Precious Metals",
+            "Expense_Ratio_%": 0.46,
+            "AUM_BUSD": 0.65
+        },
+        "GOEX": {
+            "Nombre": "Global X Gold Explorers ETF",
+            "Category": "Equity Precious Metals",
+            "Expense_Ratio_%": 0.65,
+            "AUM_BUSD": 0.12
+        },
+        "GDMN": {
+            "Nombre": "WisdomTree Efficient Gold Plus ",
+            "Category": "Multi-Asset Overlay",
+            "Expense_Ratio_%": 0.45,
+            "AUM_BUSD": 0.22
+        },
+        "GDE": {
+            "Nombre": "WisdomTree Efficient Gold Plus ",
+            "Category": "Multi-Asset Overlay",
+            "Expense_Ratio_%": 0.2,
+            "AUM_BUSD": 0.45
+        },
+        "GDXU": {
+            "Nombre": "MicroSectors Gold Miners 3X Lev",
+            "Category": "Trading--Leveraged Commodities",
+            "Expense_Ratio_%": 0.95,
+            "AUM_BUSD": 0.95
+        },
+        "GDXY": {
+            "Nombre": "YieldMax Gold Miners Option Inc",
+            "Category": "Commodities Focused",
+            "Expense_Ratio_%": 1.0,
+            "AUM_BUSD": 0.31
+        },
+        "GLD": {
+            "Nombre": "SPDR Gold Shares",
+            "Category": "Commodities Focused",
+            "Expense_Ratio_%": 0.4,
+            "AUM_BUSD": 141.7
+        },
+        "WCBR": {
+            "Nombre": "WisdomTree Cybersecurity Fund",
+            "Category": "Technology",
+            "Expense_Ratio_%": 0.45,
+            "AUM_BUSD": 0.19
+        },
+        "CRAK": {
+            "Nombre": "VanEck Oil Refiners ETF",
+            "Category": "Equity Energy",
+            "Expense_Ratio_%": 0.61,
+            "AUM_BUSD": 0.66
+        },
+        "IEO": {
+            "Nombre": "iShares U.S. Oil & Gas Explorat",
+            "Category": "Equity Energy",
+            "Expense_Ratio_%": 0.37,
+            "AUM_BUSD": 0.73
+        },
+        "IXC": {
+            "Nombre": "iShares Global Energy ETF",
+            "Category": "Equity Energy",
+            "Expense_Ratio_%": 0.37,
+            "AUM_BUSD": 2.98
+        },
+        "EINC": {
+            "Nombre": "VanEck Energy Income ETF",
+            "Category": "Energy Limited Partnership",
+            "Expense_Ratio_%": 0.46,
+            "AUM_BUSD": 0.08
+        },
+        "SOXL": {
+            "Nombre": "Direxion Daily Semiconductor Bu",
+            "Category": "Trading--Leveraged Equity",
+            "Expense_Ratio_%": 0.75,
+            "AUM_BUSD": 23.97
+        },
+        "XLF": {
+            "Nombre": "State Street Financial Select S",
+            "Category": "Financial",
+            "Expense_Ratio_%": 0.08,
+            "AUM_BUSD": 50.97
+        },
+        "UNG": {
+            "Nombre": "United States Natural Gas Fund ",
+            "Category": "Commodities Focused",
+            "Expense_Ratio_%": 1.17,
+            "AUM_BUSD": 0.46
+        },
+        "IWM": {
+            "Nombre": "iShares Russell 2000 Index Fund",
+            "Category": "Small Blend",
+            "Expense_Ratio_%": 0.19,
+            "AUM_BUSD": 78.04
+        },
+        "PGX": {
+            "Nombre": "Invesco Preferred ETF",
+            "Category": "Preferred Stock",
+            "Expense_Ratio_%": 0.5,
+            "AUM_BUSD": 3.61
+        }
+    },
+    "stock_list": {
+        "AAPL": {
+            "Empresa": "Apple Inc.",
+            "Sector": "Technology",
+            "Industry": "Consumer Electronics"
+        },
+        "GOOG": {
+            "Empresa": "Alphabet Inc.",
+            "Sector": "Communication Services",
+            "Industry": "Internet Content & Information"
+        },
+        "NVDA": {
+            "Empresa": "NVIDIA Corporation",
+            "Sector": "Technology",
+            "Industry": "Semiconductors"
+        },
+        "META": {
+            "Empresa": "Meta Platforms, Inc.",
+            "Sector": "Communication Services",
+            "Industry": "Internet Content & Information"
+        },
+        "GEV": {
+            "Empresa": "GE Vernova Inc.",
+            "Sector": "Industrials",
+            "Industry": "Specialty Industrial Machinery"
+        },
+        "WMT": {
+            "Empresa": "Walmart Inc.",
+            "Sector": "Consumer Defensive",
+            "Industry": "Discount Stores"
+        },
+        "UNP": {
+            "Empresa": "Union Pacific Corporation",
+            "Sector": "Industrials",
+            "Industry": "Railroads"
+        },
+        "LLY": {
+            "Empresa": "Eli Lilly and Company",
+            "Sector": "Healthcare",
+            "Industry": "Drug Manufacturers - General"
+        },
+        "JCI": {
+            "Empresa": "Johnson Controls International ",
+            "Sector": "Industrials",
+            "Industry": "Building Products & Equipment"
+        },
+        "CAT": {
+            "Empresa": "Caterpillar, Inc.",
+            "Sector": "Industrials",
+            "Industry": "Farm & Heavy Construction Machinery"
+        },
+        "GE": {
+            "Empresa": "GE Aerospace",
+            "Sector": "Industrials",
+            "Industry": "Aerospace & Defense"
+        },
+        "NFLX": {
+            "Empresa": "Netflix, Inc.",
+            "Sector": "Communication Services",
+            "Industry": "Entertainment"
+        },
+        "PG": {
+            "Empresa": "Procter & Gamble Company (The)",
+            "Sector": "Consumer Defensive",
+            "Industry": "Household & Personal Products"
+        },
+        "COST": {
+            "Empresa": "Costco Wholesale Corporation",
+            "Sector": "Consumer Defensive",
+            "Industry": "Discount Stores"
+        },
+        "JNJ": {
+            "Empresa": "Johnson & Johnson",
+            "Sector": "Healthcare",
+            "Industry": "Drug Manufacturers - General"
+        },
+        "ABBV": {
+            "Empresa": "AbbVie Inc.",
+            "Sector": "Healthcare",
+            "Industry": "Drug Manufacturers - General"
+        },
+        "TMO": {
+            "Empresa": "Thermo Fisher Scientific Inc",
+            "Sector": "Healthcare",
+            "Industry": "Diagnostics & Research"
+        },
+        "ISRG": {
+            "Empresa": "Intuitive Surgical, Inc.",
+            "Sector": "Healthcare",
+            "Industry": "Medical Instruments & Supplies"
+        },
+        "PANW": {
+            "Empresa": "Palo Alto Networks, Inc.",
+            "Sector": "Technology",
+            "Industry": "Software - Infrastructure"
+        },
+        "MSFT": {
+            "Empresa": "Microsoft Corporation",
+            "Sector": "Technology",
+            "Industry": "Software - Infrastructure"
+        },
+        "DELL": {
+            "Empresa": "Dell Technologies Inc.",
+            "Sector": "Technology",
+            "Industry": "Computer Hardware"
+        },
+        "PLTR": {
+            "Empresa": "Palantir Technologies Inc.",
+            "Sector": "Technology",
+            "Industry": "Software - Infrastructure"
+        },
+        "ORCL": {
+            "Empresa": "Oracle Corporation",
+            "Sector": "Technology",
+            "Industry": "Software - Infrastructure"
+        },
+        "TER": {
+            "Empresa": "Teradyne, Inc.",
+            "Sector": "Technology",
+            "Industry": "Semiconductor Equipment & Materials"
+        },
+        "CGNX": {
+            "Empresa": "Cognex Corporation",
+            "Sector": "Technology",
+            "Industry": "Scientific & Technical Instruments"
+        },
+        "INTC": {
+            "Empresa": "Intel Corporation",
+            "Sector": "Technology",
+            "Industry": "Semiconductors"
+        },
+        "MU": {
+            "Empresa": "Micron Technology, Inc.",
+            "Sector": "Technology",
+            "Industry": "Semiconductors"
+        },
+        "SNDK": {
+            "Empresa": "Sandisk Corporation",
+            "Sector": "Technology",
+            "Industry": "Computer Hardware"
+        },
+        "FSLY": {
+            "Empresa": "Fastly, Inc.",
+            "Sector": "Technology",
+            "Industry": "Software - Application"
+        },
+        "NVAX": {
+            "Empresa": "Novavax, Inc.",
+            "Sector": "Healthcare",
+            "Industry": "Biotechnology"
+        },
+        "CCI": {
+            "Empresa": "Crown Castle Inc.",
+            "Sector": "Real Estate",
+            "Industry": "REIT - Specialty"
+        },
+        "MRNA": {
+            "Empresa": "Moderna, Inc.",
+            "Sector": "Healthcare",
+            "Industry": "Biotechnology"
+        },
+        "SPCX": {
+            "Empresa": "Space Exploration Technologies ",
+            "Sector": "Industrials",
+            "Industry": "Aerospace & Defense"
+        },
+        "RTX": {
+            "Empresa": "RTX Corporation",
+            "Sector": "Industrials",
+            "Industry": "Aerospace & Defense"
+        },
+        "MRK": {
+            "Empresa": "Merck & Company, Inc.",
+            "Sector": "Healthcare",
+            "Industry": "Drug Manufacturers - General"
+        },
+        "PFE": {
+            "Empresa": "Pfizer, Inc.",
+            "Sector": "Healthcare",
+            "Industry": "Drug Manufacturers - General"
+        },
+        "GILD": {
+            "Empresa": "Gilead Sciences, Inc.",
+            "Sector": "Healthcare",
+            "Industry": "Drug Manufacturers - General"
+        },
+        "SNAP": {
+            "Empresa": "Snap Inc.",
+            "Sector": "Communication Services",
+            "Industry": "Internet Content & Information"
+        },
+        "HD": {
+            "Empresa": "Home Depot, Inc. (The)",
+            "Sector": "Consumer Cyclical",
+            "Industry": "Home Improvement Retail"
+        },
+        "CRS": {
+            "Empresa": "Carpenter Technology Corporatio",
+            "Sector": "Industrials",
+            "Industry": "Metal Fabrication"
+        },
+        "MLI": {
+            "Empresa": "Mueller Industries, Inc.",
+            "Sector": "Industrials",
+            "Industry": "Metal Fabrication"
+        },
+        "DY": {
+            "Empresa": "Dycom Industries, Inc.",
+            "Sector": "Industrials",
+            "Industry": "Engineering & Construction"
+        },
+        "FTI": {
+            "Empresa": "TechnipFMC plc",
+            "Sector": "Energy",
+            "Industry": "Oil & Gas Equipment & Services"
+        },
+        "CW": {
+            "Empresa": "Curtiss-Wright Corporation",
+            "Sector": "Industrials",
+            "Industry": "Aerospace & Defense"
+        },
+        "AM": {
+            "Empresa": "Antero Midstream Corporation",
+            "Sector": "Energy",
+            "Industry": "Oil & Gas Midstream"
+        },
+        "R": {
+            "Empresa": "Ryder System, Inc.",
+            "Sector": "Industrials",
+            "Industry": "Rental & Leasing Services"
+        },
+        "WWD": {
+            "Empresa": "Woodward, Inc.",
+            "Sector": "Industrials",
+            "Industry": "Aerospace & Defense"
+        },
+        "SNX": {
+            "Empresa": "TD SYNNEX Corporation",
+            "Sector": "Technology",
+            "Industry": "Electronics & Computer Distribution"
+        },
+        "SPXC": {
+            "Empresa": "SPX Technologies, Inc.",
+            "Sector": "Industrials",
+            "Industry": "Building Products & Equipment"
+        },
+        "CR": {
+            "Empresa": "Crane Company",
+            "Sector": "Industrials",
+            "Industry": "Specialty Industrial Machinery"
+        },
+        "APG": {
+            "Empresa": "APi Group Corporation",
+            "Sector": "Industrials",
+            "Industry": "Engineering & Construction"
+        },
+        "ULS": {
+            "Empresa": "UL Solutions Inc.",
+            "Sector": "Industrials",
+            "Industry": "Specialty Business Services"
+        },
+        "FCFS": {
+            "Empresa": "FirstCash Holdings, Inc.",
+            "Sector": "Financial Services",
+            "Industry": "Credit Services"
+        },
+        "GHC": {
+            "Empresa": "Graham Holdings Company",
+            "Sector": "Industrials",
+            "Industry": "Conglomerates"
+        },
+        "COKE": {
+            "Empresa": "Coca-Cola Consolidated, Inc.",
+            "Sector": "Consumer Defensive",
+            "Industry": "Beverages - Non-Alcoholic"
+        },
+        "OHI": {
+            "Empresa": "Omega Healthcare Investors, Inc",
+            "Sector": "Real Estate",
+            "Industry": "REIT - Healthcare Facilities"
+        },
+        "LAMR": {
+            "Empresa": "Lamar Advertising Company",
+            "Sector": "Real Estate",
+            "Industry": "REIT - Specialty"
+        },
+        "WTFC": {
+            "Empresa": "Wintrust Financial Corporation",
+            "Sector": "Financial Services",
+            "Industry": "Banks - Regional"
+        },
+        "FHN": {
+            "Empresa": "First Horizon Corporation",
+            "Sector": "Financial Services",
+            "Industry": "Banks - Regional"
+        },
+        "AMZN": {
+            "Empresa": "Amazon.com, Inc.",
+            "Sector": "Consumer Cyclical",
+            "Industry": "Internet Retail"
+        },
+        "TSLA": {
+            "Empresa": "Tesla, Inc.",
+            "Sector": "Consumer Cyclical",
+            "Industry": "Auto Manufacturers"
+        },
+        "MCD": {
+            "Empresa": "McDonald's Corporation",
+            "Sector": "Consumer Cyclical",
+            "Industry": "Restaurants"
+        },
+        "BKNG": {
+            "Empresa": "Booking Holdings Inc. Common St",
+            "Sector": "Consumer Cyclical",
+            "Industry": "Travel Services"
+        },
+        "DIS": {
+            "Empresa": "Walt Disney Company (The)",
+            "Sector": "Communication Services",
+            "Industry": "Entertainment"
+        },
+        "SBUX": {
+            "Empresa": "Starbucks Corporation",
+            "Sector": "Consumer Cyclical",
+            "Industry": "Restaurants"
+        },
+        "LULU": {
+            "Empresa": "lululemon athletica inc.",
+            "Sector": "Consumer Cyclical",
+            "Industry": "Apparel Retail"
+        },
+        "AZO": {
+            "Empresa": "AutoZone, Inc.",
+            "Sector": "Consumer Cyclical",
+            "Industry": "Auto Parts"
+        },
+        "VZ": {
+            "Empresa": "Verizon Communications Inc.",
+            "Sector": "Communication Services",
+            "Industry": "Telecom Services"
+        },
+        "TMUS": {
+            "Empresa": "T-Mobile US, Inc.",
+            "Sector": "Communication Services",
+            "Industry": "Telecom Services"
+        },
+        "T": {
+            "Empresa": "AT&T Inc.",
+            "Sector": "Communication Services",
+            "Industry": "Telecom Services"
+        },
+        "V": {
+            "Empresa": "Visa Inc.",
+            "Sector": "Financial Services",
+            "Industry": "Credit Services"
+        },
+        "SPOT": {
+            "Empresa": "Spotify Technology S.A.",
+            "Sector": "Communication Services",
+            "Industry": "Internet Content & Information"
+        },
+        "PM": {
+            "Empresa": "Philip Morris International Inc",
+            "Sector": "Consumer Defensive",
+            "Industry": "Tobacco"
+        },
+        "PEP": {
+            "Empresa": "Pepsico, Inc.",
+            "Sector": "Consumer Defensive",
+            "Industry": "Beverages - Non-Alcoholic"
+        },
+        "CL": {
+            "Empresa": "Colgate-Palmolive Company",
+            "Sector": "Consumer Defensive",
+            "Industry": "Household & Personal Products"
+        },
+        "KMB": {
+            "Empresa": "Kimberly-Clark Corporation",
+            "Sector": "Consumer Defensive",
+            "Industry": "Household & Personal Products"
+        },
+        "XOM": {
+            "Empresa": "ExxonMobil Holdings Corporation",
+            "Sector": "Energy",
+            "Industry": "Oil & Gas Integrated"
+        },
+        "CVX": {
+            "Empresa": "Chevron Corporation",
+            "Sector": "Energy",
+            "Industry": "Oil & Gas Integrated"
+        },
+        "COP": {
+            "Empresa": "ConocoPhillips",
+            "Sector": "Energy",
+            "Industry": "Oil & Gas E&P"
+        },
+        "BP": {
+            "Empresa": "BP p.l.c.",
+            "Sector": "Energy",
+            "Industry": "Oil & Gas Integrated"
+        },
+        "NEE": {
+            "Empresa": "NextEra Energy, Inc.",
+            "Sector": "Utilities",
+            "Industry": "Utilities - Regulated Electric"
+        },
+        "VLO": {
+            "Empresa": "Valero Energy Corporation",
+            "Sector": "Energy",
+            "Industry": "Oil & Gas Refining & Marketing"
+        },
+        "CEG": {
+            "Empresa": "Constellation Energy Corporatio",
+            "Sector": "Utilities",
+            "Industry": "Utilities - Independent Power Producers"
+        },
+        "DUK": {
+            "Empresa": "Duke Energy Corporation (Holdin",
+            "Sector": "Utilities",
+            "Industry": "Utilities - Regulated Electric"
+        },
+        "VST": {
+            "Empresa": "Vistra Corp.",
+            "Sector": "Utilities",
+            "Industry": "Utilities - Independent Power Producers"
+        },
+        "AEP": {
+            "Empresa": "American Electric Power Company",
+            "Sector": "Utilities",
+            "Industry": "Utilities - Regulated Electric"
+        },
+        "D": {
+            "Empresa": "Dominion Energy, Inc.",
+            "Sector": "Utilities",
+            "Industry": "Utilities - Regulated Electric"
+        },
+        "SO": {
+            "Empresa": "Southern Company (The)",
+            "Sector": "Utilities",
+            "Industry": "Utilities - Regulated Electric"
+        },
+        "BRK-B": {
+            "Empresa": "Berkshire Hathaway Inc. New",
+            "Sector": "Financial Services",
+            "Industry": "Insurance - Diversified"
+        },
+        "JPM": {
+            "Empresa": "JP Morgan Chase & Co.",
+            "Sector": "Financial Services",
+            "Industry": "Banks - Diversified"
+        },
+        "BAC": {
+            "Empresa": "Bank of America Corporation",
+            "Sector": "Financial Services",
+            "Industry": "Banks - Diversified"
+        },
+        "MS": {
+            "Empresa": "Morgan Stanley",
+            "Sector": "Financial Services",
+            "Industry": "Capital Markets"
+        },
+        "GS": {
+            "Empresa": "Goldman Sachs Group, Inc. (The)",
+            "Sector": "Financial Services",
+            "Industry": "Capital Markets"
+        },
+        "WELL": {
+            "Empresa": "Welltower Inc.",
+            "Sector": "Real Estate",
+            "Industry": "REIT - Healthcare Facilities"
+        },
+        "PLD": {
+            "Empresa": "Prologis, Inc.",
+            "Sector": "Real Estate",
+            "Industry": "REIT - Industrial"
+        },
+        "EQIX": {
+            "Empresa": "Equinix, Inc.",
+            "Sector": "Real Estate",
+            "Industry": "REIT - Specialty"
+        },
+        "AMT": {
+            "Empresa": "American Tower Corporation (REI",
+            "Sector": "Real Estate",
+            "Industry": "REIT - Specialty"
+        }
+    }
+}
