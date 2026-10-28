@@ -112,6 +112,14 @@ def calculate_stock_performance(ticker_symbol, period="5y", rf=0.04):
     try:
         df = yf.download(ticker_symbol, period=period, progress=False, auto_adjust=True)
         prices = df['Close']
+    except Exception:
+        prices = None
+    return calculate_stock_performance_from_prices(prices, rf=rf)
+
+def calculate_stock_performance_from_prices(prices, rf=0.04):
+    """Igual que calculate_stock_performance, pero sobre una serie de precios de cierre ya
+    descargada (permite descargar todos los tickers en una sola llamada)."""
+    try:
         if isinstance(prices, pd.DataFrame):
             prices = prices.squeeze()
 
