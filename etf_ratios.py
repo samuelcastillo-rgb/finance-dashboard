@@ -95,7 +95,8 @@ def calculate_etf_performance(ticker_symbol, period="5y", rf=0.04):
             'Max_Drawdown_%': round(max_dd, 2)
         }
     except Exception:
-        return {'CAGR_%': 0, 'Volatilidad_%': 0, 'Sharpe': 0, 'Sortino': 0, 'Max_Drawdown_%': 0}
+        # Sin precios (descarga fallida): None = "sin dato", no 0, para que no puntúe como un 0 real
+        return {'CAGR_%': None, 'Volatilidad_%': None, 'Sharpe': None, 'Sortino': None, 'Max_Drawdown_%': None}
 
 
 def calculate_tracking_metrics(etf_ticker, benchmark_ticker="^GSPC", period="3y"):
