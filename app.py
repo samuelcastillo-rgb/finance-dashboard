@@ -7,6 +7,8 @@
 import html
 import json
 import os
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
 import numpy as np
@@ -16,6 +18,7 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 import yfinance as yf
+from streamlit.runtime.scriptrunner import add_script_run_ctx, get_script_run_ctx
 
 import etf_ratios as er
 import stock_ratios as sr
@@ -339,6 +342,60 @@ sesion_http.headers.update({
     'Connection': 'keep-alive'
 })
 
+# Hilos simultáneos para consultar Yahoo (info y estados financieros son E/S de red).
+# Más hilos acelera la carga inicial pero aumenta el riesgo de que Yahoo limite peticiones.
+MAX_HILOS_YAHOO = 8
+
+
+@st.cache_data(ttl=3600, show_spinner="Descargando precios históricos…")
+def descargar_precios_cierre(universo_tuple, period="5y"):
+    """Precios de cierre ajustados de TODOS los tickers en una sola descarga (columnas = tickers).
+    Sustituye a una descarga por ticker: es la parte más lenta de la carga inicial."""
+    if not universo_tuple:
+        return pd.DataFrame()
+    try:
+        precios = yf.download(list(universo_tuple), period=period, progress=False,
+                              auto_adjust=True, threads=True)['Close']
+    except Exception:
+        return pd.DataFrame()
+    if isinstance(precios, pd.Series):
+        precios = precios.to_frame(name=universo_tuple[0])
+    return precios
+
+
+def serie_precios(precios, symbol):
+    """Columna de precios de un ticker; None si no se descargó."""
+    if precios is None or symbol not in getattr(precios, 'columns', []):
+        return None
+    return precios[symbol]
+
+
+def obtener_en_paralelo(funcion, simbolos, texto_barra):
+    """Ejecuta funcion(simbolo) en varios hilos y devuelve los resultados en el orden de simbolos."""
+    total = len(simbolos)
+    resultados = [None] * total
+    if not total:
+        return resultados
+    ctx = get_script_run_ctx()
+
+    def tarea(simbolo):
+        # Los hilos necesitan el contexto de Streamlit para usar st.cache_data sin avisos
+        add_script_run_ctx(threading.current_thread(), ctx)
+        try:
+            return funcion(simbolo)
+        except Exception:
+            return None
+
+    barra = st.progress(0.0, text=f"{texto_barra}…")
+    with ThreadPoolExecutor(max_workers=MAX_HILOS_YAHOO) as pool:
+        futuros = {pool.submit(tarea, s): i for i, s in enumerate(simbolos)}
+        for n, futuro in enumerate(as_completed(futuros), 1):
+            i = futuros[futuro]
+            resultados[i] = futuro.result()
+            barra.progress(n / total, text=f"{texto_barra} {n}/{total}: {simbolos[i]}")
+    barra.empty()
+    return resultados
+
 
 # ------------------------------------------------------------------------------
 # CARGA ROBUSTA DE ETFS (CON EXTRACCIÓN DIRECTA Y NORMALIZACIÓN)
@@ -392,12 +449,8 @@ def obtener_metrica_etf_individual(symbol):
             '52W_Change_%': change_52w
         }
 
-        # etf_ratios ya calcula CAGR, Volatilidad, Sharpe, Sortino y Max Drawdown con las
-        # mismas fórmulas que stock_ratios para CAGR/Volatilidad/Sortino.
-        try:
-            perf = er.calculate_etf_performance(symbol, period="5y")
-        except Exception:
-            perf = {}
+        # El rendimiento (CAGR, Sortino, etc.) se calcula en cargar_datos_etfs a partir de la
+        # descarga conjunta de precios.
 
         # Rendimiento por dividendo (informativo, no entra al score)
         try:
@@ -407,25 +460,22 @@ def obtener_metrica_etf_individual(symbol):
 
         reg = {'Ticker': symbol}
         reg.update(fund)
-        reg.update(perf)
         reg['Yield_%'] = rendimiento
         return reg
     except Exception:
         return None
 
 
-def cargar_datos_etfs(universo_tuple):
+def cargar_datos_etfs(universo_tuple, precios):
     resultados = []
-    total = len(universo_tuple)
-    barra = st.progress(0.0, text="Cargando ETFs…") if total else None
-    for i, symbol in enumerate(universo_tuple):
-        datos_etf = obtener_metrica_etf_individual(symbol)
+    for symbol, datos_etf in zip(universo_tuple,
+                                 obtener_en_paralelo(obtener_metrica_etf_individual, universo_tuple, "Cargando ETFs")):
         if datos_etf:
+            # etf_ratios calcula CAGR, Volatilidad, Sharpe, Sortino y Max Drawdown con las
+            # mismas fórmulas que stock_ratios para CAGR/Volatilidad/Sortino.
+            datos_etf = dict(datos_etf)
+            datos_etf.update(er.calculate_etf_performance_from_prices(serie_precios(precios, symbol)))
             resultados.append(datos_etf)
-        if barra is not None:
-            barra.progress((i + 1) / total, text=f"ETFs {i + 1}/{total}: {symbol}")
-    if barra is not None:
-        barra.empty()
 
     if not resultados:
         return pd.DataFrame()
@@ -528,11 +578,8 @@ def obtener_metrica_individual(symbol):
         except Exception:
             fund = {}
 
-        try:
-            perf = sr.calculate_stock_performance(symbol, period="5y") if hasattr(sr, 'calculate_stock_performance') else {}
-        except Exception:
-            perf = {}
-
+        # El rendimiento (CAGR, Sortino) se calcula en cargar_datos_acciones a partir de la
+        # descarga conjunta de precios.
         reg = {
             'Ticker': symbol,
             'Empresa': empresa,
@@ -547,26 +594,21 @@ def obtener_metrica_individual(symbol):
         if 'Sector' in fund: del fund['Sector']
 
         reg.update(fund)
-        reg.update(perf)
 
         return reg
     except Exception:
         return {'Ticker': symbol, 'Score_Final': 0, 'Sector': 'General', 'Empresa': symbol}
 
 
-# 2. Orquestador: Itera la lista recuperando del caché instantáneo lo existente
-def cargar_datos_acciones(universo_tuple):
+# 2. Orquestador: consulta en paralelo los tickers (los ya cacheados vuelven al instante)
+def cargar_datos_acciones(universo_tuple, precios):
     resultados = []
-    total = len(universo_tuple)
-    barra = st.progress(0.0, text="Cargando acciones…") if total else None
-    for i, symbol in enumerate(universo_tuple):
-        datos_accion = obtener_metrica_individual(symbol)
+    for symbol, datos_accion in zip(universo_tuple,
+                                    obtener_en_paralelo(obtener_metrica_individual, universo_tuple, "Cargando acciones")):
         if datos_accion:
+            datos_accion = dict(datos_accion)
+            datos_accion.update(sr.calculate_stock_performance_from_prices(serie_precios(precios, symbol)))
             resultados.append(datos_accion)
-        if barra is not None:
-            barra.progress((i + 1) / total, text=f"Acciones {i + 1}/{total}: {symbol}")
-    if barra is not None:
-        barra.empty()
 
     if not resultados:
         return pd.DataFrame()
@@ -604,26 +646,27 @@ def cargar_datos_acciones(universo_tuple):
     return df.sort_values(by='Score_Final', ascending=False)
 
 
-@st.cache_data(ttl=3600)
-def generar_grafico_tendencia_6m(tickers_lista, titulo_grafico):
+def ultimos_meses(precios, tickers, meses):
+    """Recorta la descarga conjunta a los tickers y a los últimos `meses` (sin nueva descarga)."""
+    columnas = [t for t in tickers if t in precios.columns]
+    if not columnas:
+        return pd.DataFrame()
+    recorte = precios[columnas]
+    recorte = recorte[recorte.index >= recorte.index.max() - pd.DateOffset(months=meses)]
+    return recorte.dropna(axis=0, how='all').dropna(axis=1, how='all')
+
+
+def generar_grafico_tendencia_6m(precios_todos, tickers_lista, titulo_grafico):
     if not tickers_lista:
         return None
 
-    # Descargar precios de cierre de 6 meses
-    datos = yf.download(tickers_lista, period="6mo", progress=False)
-    if datos.empty:
-        return None
-
-    precios = datos['Adj Close'] if 'Adj Close' in datos else datos['Close']
-    if isinstance(precios, pd.Series):
-        precios = precios.to_frame(name=tickers_lista[0])
-
-    precios = precios.dropna(axis=1, how='all')
+    # Precios de cierre de 6 meses, recortados de la descarga conjunta
+    precios = ultimos_meses(precios_todos, tickers_lista, 6)
     if precios.empty:
         return None
 
-    # Normalizar a retorno porcentual (%) desde el día 1
-    retornos_pct = ((precios / precios.iloc[0]) - 1) * 100
+    # Normalizar a retorno porcentual (%) desde el primer precio disponible de cada activo
+    retornos_pct = ((precios / precios.bfill().iloc[0]) - 1) * 100
 
     fig = px.line(
         retornos_pct,
@@ -636,24 +679,23 @@ def generar_grafico_tendencia_6m(tickers_lista, titulo_grafico):
     return aplicar_estilo_grafico(fig, altura=380, leyenda_abajo=True)
 
 
-@st.cache_data(ttl=3600)
-def calcular_matriz_correlacion(tickers_list):
+def calcular_matriz_correlacion(precios_todos, tickers_list):
     if not tickers_list or len(tickers_list) < 2:
         return pd.DataFrame()
-    try:
-        data = yf.download(tickers_list, period="1y", progress=False, auto_adjust=True)['Close']
-    except Exception:
-        # Descarga vacía o fallida (red, tickers inválidos): sin matriz en vez de romper la página
-        return pd.DataFrame()
-    if isinstance(data, pd.Series) or data.shape[1] < 2:
+    # Precios de 1 año recortados de la descarga conjunta (vacía si falló: sin matriz)
+    data = ultimos_meses(precios_todos, tickers_list, 12)
+    if data.shape[1] < 2:
         return pd.DataFrame()
     returns = data.pct_change().dropna()
     return returns.corr().round(2)
 
 
-# Carga de data usando las listas del session_state
-df_etfs = cargar_datos_etfs(tuple(st.session_state.etf_list))
-df_stocks = cargar_datos_acciones(tuple(st.session_state.stock_list))
+# Carga de data usando las listas del session_state. Una única descarga de precios para
+# ETFs y acciones; info y estados financieros se piden en paralelo.
+universo_precios = tuple(dict.fromkeys(st.session_state.etf_list + st.session_state.stock_list))
+precios_cierre = descargar_precios_cierre(universo_precios)
+df_etfs = cargar_datos_etfs(tuple(st.session_state.etf_list), precios_cierre)
+df_stocks = cargar_datos_acciones(tuple(st.session_state.stock_list), precios_cierre)
 n_etfs_universo = len(df_etfs)
 n_stocks_universo = len(df_stocks)
 
@@ -888,7 +930,7 @@ def grafico_dispersion(df, x, y, col_tamano, hover_data, labels, top_n):
 
 
 def grafico_correlacion(tickers):
-    matriz = calcular_matriz_correlacion(tickers)
+    matriz = calcular_matriz_correlacion(precios_cierre, tickers)
     if matriz.empty:
         return None
     fig = px.imshow(matriz, text_auto=True, aspect="auto", zmin=-1, zmax=1,
@@ -1095,7 +1137,7 @@ with tab_etf:
             tickers_top = df_etfs.head(top_n)['Ticker'].tolist()
             with st.container(border=True):
                 fig_6m = generar_grafico_tendencia_6m(
-                    tickers_top, f"Rendimiento acumulado, 6 meses · Top {len(tickers_top)} por score"
+                    precios_cierre, tickers_top, f"Rendimiento acumulado, 6 meses · Top {len(tickers_top)} por score"
                                  + ("" if categoria_sel == "Todas" else f" · {categoria_sel}"))
                 if fig_6m:
                     st.plotly_chart(fig_6m, width='stretch', key='trend_etf')
@@ -1195,7 +1237,7 @@ with tab_stock:
             tickers_top_stk = df_stocks.head(top_n)['Ticker'].tolist()
             with st.container(border=True):
                 fig_6m_stk = generar_grafico_tendencia_6m(
-                    tickers_top_stk, f"Rendimiento acumulado, 6 meses · Top {len(tickers_top_stk)} por score"
+                    precios_cierre, tickers_top_stk, f"Rendimiento acumulado, 6 meses · Top {len(tickers_top_stk)} por score"
                                      + ("" if sector_sel == "Todos" else f" · {sector_sel}"))
                 if fig_6m_stk:
                     st.plotly_chart(fig_6m_stk, width='stretch', key='trend_stk')
