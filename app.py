@@ -8,6 +8,7 @@ import html
 import json
 import os
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
@@ -15,7 +16,6 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import requests
 import streamlit as st
 import yfinance as yf
 from streamlit.runtime.scriptrunner import add_script_run_ctx, get_script_run_ctx
@@ -333,18 +333,31 @@ if 'ultima_actualizacion' not in st.session_state:
 # 3. FUNCIONES DE CARGA DE DATOS CON CACHÉ DINÁMICO
 # ------------------------------------------------------------------------------
 
-# --- ENGAÑO A YAHOO FINANCE PARA NUBE ---
-sesion_http = requests.Session()
-sesion_http.headers.update({
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.5',
-    'Connection': 'keep-alive'
-})
+# --- CONEXIÓN CON YAHOO FINANCE DESDE LA NUBE ---
+# No se pasa una sesión propia: yfinance usa curl_cffi, que imita la huella TLS de un navegador.
+# Una sesión de `requests` con cabeceras falsas no la imita, y Yahoo suele bloquear `info`
+# (error 429) desde servidores en la nube aunque los precios sí se descarguen.
 
 # Hilos simultáneos para consultar Yahoo (info y estados financieros son E/S de red).
 # Más hilos acelera la carga inicial pero aumenta el riesgo de que Yahoo limite peticiones.
-MAX_HILOS_YAHOO = 8
+MAX_HILOS_YAHOO = 4
+INTENTOS_INFO = 3
+
+
+def obtener_info(ticker):
+    """`ticker.info` con reintentos y espera creciente (Yahoo rechaza ráfagas con 429).
+    Devuelve {} si no hay respuesta útil tras todos los intentos."""
+    for intento in range(INTENTOS_INFO):
+        try:
+            info = ticker.info or {}
+            # Una respuesta bloqueada suele traer solo un par de claves sin datos
+            if len(info) > 5:
+                return info
+        except Exception:
+            pass
+        if intento < INTENTOS_INFO - 1:
+            time.sleep(1.5 * (intento + 1))
+    return {}
 
 
 @st.cache_data(ttl=3600, show_spinner="Descargando precios históricos…")
@@ -403,12 +416,8 @@ def obtener_en_paralelo(funcion, simbolos, texto_barra):
 @st.cache_data(ttl=3600)
 def obtener_metrica_etf_individual(symbol):
     try:
-        # Instanciar pasando la sesión "engañosa"
-        etf = yf.Ticker(symbol, session=sesion_http)
-        try:
-            info = etf.info or {}
-        except Exception:
-            info = {}
+        etf = yf.Ticker(symbol)
+        info = obtener_info(etf)
 
         # Soportar ambas formas posibles en las que se pudo haber guardado el JSON
         dict_etfs = CACHE_GLOBAL.get("etfs") or CACHE_GLOBAL.get("etf_list") or {}
@@ -523,12 +532,8 @@ def cargar_datos_etfs(universo_tuple, precios):
 @st.cache_data(ttl=3600)
 def obtener_metrica_individual(symbol):
     try:
-        # Pasar sesión engañosa
-        stock = yf.Ticker(symbol, session=sesion_http)
-        try:
-            info = stock.info or {}
-        except Exception:
-            info = {}
+        stock = yf.Ticker(symbol)
+        info = obtener_info(stock)
 
         dict_stocks = CACHE_GLOBAL.get("stocks") or CACHE_GLOBAL.get("stock_list") or {}
         fallback = dict_stocks.get(symbol.upper(), {
@@ -541,11 +546,12 @@ def obtener_metrica_individual(symbol):
         if not sector or sector in ['General', 'Sin Sector']:
             sector = fallback.get('Sector', 'General')
 
+        # Sin dato de Yahoo -> None ("—" en la tabla), no un +0.00% engañoso
         try:
             raw_52w = info.get('52WeekChange')
-            change_52w = round(float(raw_52w) * 100, 2) if raw_52w is not None else 0.0
+            change_52w = round(float(raw_52w) * 100, 2) if raw_52w is not None else None
         except Exception:
-            change_52w = 0.0
+            change_52w = None
 
         try:
             bs = stock.balance_sheet
