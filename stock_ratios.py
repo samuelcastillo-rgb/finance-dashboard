@@ -67,16 +67,44 @@ def _calcular_debt_equity(stock, info):
     except Exception:
         return None
 
+def _estado(stock, nombre):
+    """Estado financiero ('financials' o 'balance_sheet'); DataFrame vacío si Yahoo falla."""
+    try:
+        df = getattr(stock, nombre)
+        return df if df is not None else pd.DataFrame()
+    except Exception:
+        return pd.DataFrame()
+
+def _ratio_pct(numerador, denominador):
+    """numerador / denominador en %; None si falta alguno o el denominador no es positivo."""
+    if numerador is None or denominador is None or denominador <= 0:
+        return None
+    return numerador / denominador * 100
+
 def get_stock_fundamentals(stock):
     """Extrae las métricas fundamentales requeridas para acciones individuales.
-    Una métrica que no se pueda obtener se devuelve como None (no como 0)."""
+    Una métrica que no se pueda obtener se devuelve como None (no como 0).
+    Si Yahoo no entrega `info` (p. ej. bloquea las peticiones desde servidores en la nube),
+    las métricas se calculan con los estados financieros anuales más recientes."""
     try:
-        info = stock.info
+        try:
+            info = stock.info or {}
+        except Exception:
+            info = {}
+        fin = _estado(stock, 'financials')
+        bs = _estado(stock, 'balance_sheet')
+        net_income = _ultimo_valor(fin, 'Net Income')
 
         # 1. Rentabilidades (convertidas a %)
         roa = _porcentaje(info, 'returnOnAssets')
+        if roa is None:
+            roa = _ratio_pct(net_income, _ultimo_valor(bs, 'Total Assets'))
         roe = _porcentaje(info, 'returnOnEquity')
+        if roe is None:
+            roe = _ratio_pct(net_income, _ultimo_valor(bs, 'Stockholders Equity'))
         net_margin = _porcentaje(info, 'profitMargins')
+        if net_margin is None:
+            net_margin = _ratio_pct(net_income, _ultimo_valor(fin, 'Total Revenue'))
 
         # 2. ROIC personalizado (NOPAT / Capital Invertido)
         try:
@@ -87,6 +115,8 @@ def get_stock_fundamentals(stock):
         # 3. Solvencia y Escala
         debt_equity = _calcular_debt_equity(stock, info)
         ebitda_raw = _numero(info.get('ebitda'))
+        if ebitda_raw is None:
+            ebitda_raw = _ultimo_valor(fin, 'EBITDA')
         ebitda_mbusd = None if ebitda_raw is None else ebitda_raw / 1e6  # Millones USD
 
         return {

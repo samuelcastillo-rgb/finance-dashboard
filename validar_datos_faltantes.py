@@ -95,4 +95,18 @@ with patch.object(er.yf, 'download', side_effect=RuntimeError('sin red')):
 comprobar('ETFs', r, {'CAGR_%': None, 'Volatilidad_%': None, 'Sharpe': None,
                       'Sortino': None, 'Max_Drawdown_%': None})
 
+print('7. Yahoo bloquea info (p. ej. en la nube) pero sí entrega los estados financieros')
+r = sr.get_stock_fundamentals(FalsaAccion(
+    RuntimeError('429 Too Many Requests'),
+    financials=estado({'EBIT': 1000, 'Tax Provision': 210, 'Pretax Income': 1000,
+                       'Net Income': 790, 'Total Revenue': 4000, 'EBITDA': 1500e6}),
+    balance_sheet=estado({'Total Debt': 500, 'Stockholders Equity': 2000,
+                          'Cash And Cash Equivalents': 300, 'Total Assets': 7900})))
+comprobar('ROIC_%', r['ROIC_%'], 35.91)
+comprobar('ROA_% (790 / 7900)', r['ROA_%'], 10.0)
+comprobar('ROE_% (790 / 2000)', r['ROE_%'], 39.5)
+comprobar('Net_Margin_% (790 / 4000)', r['Net_Margin_%'], 19.75)
+comprobar('Debt_to_Equity (500 / 2000)', r['Debt_to_Equity'], 0.25)
+comprobar('EBITDA_MUSD', r['EBITDA_MUSD'], 1500.0)
+
 print('OK')
