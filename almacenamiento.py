@@ -9,6 +9,11 @@
 #
 # La primera vez que la base está vacía, se llena automáticamente con el
 # contenido de portfolio_tickers.json, así que no hace falta migrar a mano.
+#
+# También guarda los metadatos de cada ticker (nombre, categoría, sector...).
+# Yahoo suele bloquear `info` desde servidores en la nube, así que cada vez que
+# la app (o actualizar_metadatos.py) los obtiene bien en tu computadora, quedan
+# en la base y la app en línea los usa como respaldo.
 
 import json
 import os
@@ -17,6 +22,7 @@ import streamlit as st
 from sqlalchemy import text
 
 ARCH_TICKERS = 'portfolio_tickers.json'
+ARCH_METADATOS = 'metadata_cache.json'
 NOMBRE_CONEXION = 'postgresql'
 
 # Clave en session_state / JSON  ->  valor de la columna "tipo" en la base
@@ -29,6 +35,20 @@ CREATE TABLE IF NOT EXISTS tickers (
     posicion INTEGER NOT NULL,
     PRIMARY KEY (tipo, simbolo)
 )
+"""
+
+SQL_CREAR_TABLA_METADATOS = """
+CREATE TABLE IF NOT EXISTS metadatos (
+    tipo     TEXT NOT NULL,
+    simbolo  TEXT NOT NULL,
+    datos    TEXT NOT NULL,
+    PRIMARY KEY (tipo, simbolo)
+)
+"""
+
+SQL_GUARDAR_METADATO = """
+INSERT INTO metadatos (tipo, simbolo, datos) VALUES (:tipo, :simbolo, :datos)
+ON CONFLICT (tipo, simbolo) DO UPDATE SET datos = excluded.datos
 """
 
 
@@ -46,6 +66,7 @@ def _conexion():
     conn = st.connection(NOMBRE_CONEXION, type='sql')
     with conn.session as s:
         s.execute(text(SQL_CREAR_TABLA))
+        s.execute(text(SQL_CREAR_TABLA_METADATOS))
         s.commit()
     return conn
 
@@ -132,3 +153,62 @@ def guardar_tickers(datos):
         _guardar_db(datos)
     except Exception as e:
         st.error(f"No se pudo guardar en la base de datos: {e}")
+
+
+# ------------------------------------------------------------------------------
+# Metadatos (nombre, categoría, sector...) por ticker
+# ------------------------------------------------------------------------------
+@st.cache_data(ttl=600, show_spinner=False)
+def _cargar_metadatos_db():
+    with _conexion().session as s:
+        filas = s.execute(text('SELECT tipo, simbolo, datos FROM metadatos')).fetchall()
+    clave_por_tipo = {tipo: clave for clave, tipo in TIPOS.items()}
+    datos = {clave: {} for clave in TIPOS}
+    for tipo, simbolo, texto in filas:
+        if tipo in clave_por_tipo:
+            datos[clave_por_tipo[tipo]][simbolo] = json.loads(texto)
+    return datos
+
+
+def cargar_metadatos():
+    """metadata_cache.json + lo guardado en la base (la base tiene prioridad)."""
+    datos = {clave: {} for clave in TIPOS}
+    try:
+        with open(ARCH_METADATOS, 'r', encoding='utf-8') as f:
+            archivo = json.load(f)
+        for clave in TIPOS:
+            datos[clave].update(archivo.get(clave, {}))
+    except Exception:
+        pass
+    if hay_base_de_datos():
+        try:
+            for clave, por_simbolo in _cargar_metadatos_db().items():
+                datos[clave].update(por_simbolo)
+        except Exception:
+            pass  # sin base: seguimos solo con el JSON
+    return datos
+
+
+def guardar_metadatos(metadatos):
+    """Guarda {'etf_list': {simbolo: {...}}, 'stock_list': {...}} en la base.
+    Sin base configurada no hace nada (en local se usa metadata_cache.json)."""
+    if not hay_base_de_datos():
+        return
+    filas = [
+        {'tipo': tipo, 'simbolo': simbolo, 'datos': json.dumps(valores, ensure_ascii=False)}
+        for clave, tipo in TIPOS.items()
+        for simbolo, valores in metadatos.get(clave, {}).items()
+    ]
+    if not filas:
+        return
+    try:
+        with _conexion().session as s:
+            s.execute(text(SQL_GUARDAR_METADATO), filas)
+            s.commit()
+    except Exception:
+        pass  # no es crítico: el dashboard sigue funcionando sin guardar el respaldo
+
+
+def guardar_metadato(clave, simbolo, valores):
+    """Atajo para guardar los metadatos de un solo ticker (clave = 'etf_list' o 'stock_list')."""
+    guardar_metadatos({clave: {simbolo: valores}})

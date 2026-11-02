@@ -2,9 +2,12 @@ import json
 import time
 import yfinance as yf
 
-# Cargar listas actuales de tu proyecto
-with open("portfolio_tickers.json", "r") as f:
-    datos = json.load(f)
+import almacenamiento
+
+# Cargar listas actuales: de la base de datos si está configurada
+# (.streamlit/secrets.toml) o, si no, de portfolio_tickers.json.
+# Ejecutar desde la carpeta del proyecto: python actualizar_metadatos.py
+datos = almacenamiento.cargar_tickers({"etf_list": [], "stock_list": []})
 
 etfs = datos.get("etf_list", [])
 stocks = datos.get("stock_list", [])
@@ -43,5 +46,8 @@ for s in stocks:
 # Guardar automáticamente en disco
 with open("metadata_cache.json", "w", encoding="utf-8") as f:
     json.dump(cache, f, indent=4, ensure_ascii=False)
+
+# Y en la base de datos, para que la app en línea los tenga aunque Yahoo la bloquee
+almacenamiento.guardar_metadatos(cache)
 
 print("¡Listo! metadata_cache.json generado exitosamente.")

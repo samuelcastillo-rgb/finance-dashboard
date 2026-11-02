@@ -24,12 +24,9 @@ import stock_ratios as sr
 import almacenamiento
 
 
-# Carga automática del respaldo consolidado
-try:
-    with open("metadata_cache.json", "r", encoding="utf-8") as f:
-        CACHE_GLOBAL = json.load(f)
-except Exception:
-    CACHE_GLOBAL = {"etf_list": {}, "stock_list": {}}
+# Respaldo de metadatos (nombre, categoría, sector) para cuando Yahoo bloquea `info`:
+# metadata_cache.json + lo guardado en la base de datos (ver almacenamiento.py)
+CACHE_GLOBAL = almacenamiento.cargar_metadatos()
 
 # ------------------------------------------------------------------------------
 # 0. CONSTANTES: PALETA, NIVELES DE SCORE Y DEFINICIÓN ÚNICA DE LAS FÓRMULAS
@@ -439,6 +436,13 @@ def obtener_metrica_etf_individual(symbol):
         else:
             aum_busd = fallback.get('AUM_BUSD', 0.0)
 
+        # Yahoo respondió con datos reales: los guardamos en la base para la app en línea
+        if info and categoria not in ['General', 'Sin Categoría']:
+            almacenamiento.guardar_metadato('etf_list', symbol.upper(), {
+                'Nombre': nombre, 'Category': categoria,
+                'Expense_Ratio_%': exp_ratio, 'AUM_BUSD': aum_busd
+            })
+
         raw_52w = info.get('52WeekChange')
         change_52w = round(float(raw_52w) * 100, 2) if raw_52w is not None else 0.0
 
@@ -537,6 +541,13 @@ def obtener_metrica_individual(symbol):
         sector = info.get('sector') or info.get('industry')
         if not sector or sector in ['General', 'Sin Sector']:
             sector = fallback.get('Sector', 'General')
+
+        # Yahoo respondió con datos reales: los guardamos en la base para la app en línea
+        if info and sector not in ['General', 'Sin Sector']:
+            almacenamiento.guardar_metadato('stock_list', symbol.upper(), {
+                'Empresa': empresa, 'Sector': sector,
+                'Industry': info.get('industry') or fallback.get('Industry', 'General')
+            })
 
         # Sin dato de Yahoo -> None ("—" en la tabla), no un +0.00% engañoso
         try:
