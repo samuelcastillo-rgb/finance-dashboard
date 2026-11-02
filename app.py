@@ -6,7 +6,6 @@
 
 import html
 import json
-import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -22,6 +21,8 @@ from streamlit.runtime.scriptrunner import add_script_run_ctx, get_script_run_ct
 
 import etf_ratios as er
 import stock_ratios as sr
+import almacenamiento
+
 
 # Carga automática del respaldo consolidado
 try:
@@ -285,7 +286,6 @@ h1, h2, h3, h4, h5, h6 {
 # ------------------------------------------------------------------------------
 # 2. GESTIÓN PERSISTENTE DE TICKERS EN DISCO (JSON) Y CANDADO ANTI-DUPLICADOS
 # ------------------------------------------------------------------------------
-ARCH_TICKERS = 'portfolio_tickers.json'
 TICKERS_DEFECTO = {
     'etf_list': ['VOO', 'IVV', 'SPY'],
     'stock_list': ['AAPL', 'MSFT', 'GOOGL']
@@ -293,22 +293,14 @@ TICKERS_DEFECTO = {
 
 
 def cargar_tickers():
-    if os.path.exists(ARCH_TICKERS):
-        try:
-            with open(ARCH_TICKERS, 'r') as f:
-                return json.load(f)
-        except Exception:
-            return TICKERS_DEFECTO
-    return TICKERS_DEFECTO
+    return almacenamiento.cargar_tickers(TICKERS_DEFECTO)
 
 
 def guardar_tickers_disco():
-    datos = {
+    almacenamiento.guardar_tickers({
         'etf_list': st.session_state.etf_list,
         'stock_list': st.session_state.stock_list
-    }
-    with open(ARCH_TICKERS, 'w') as f:
-        json.dump(datos, f, indent=4)
+    })
 
 
 # Cargar tickers y ELIMINAR DUPLICADOS automáticamente
