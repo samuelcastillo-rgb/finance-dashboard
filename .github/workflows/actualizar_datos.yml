@@ -1,0 +1,33 @@
+name: Actualizar datos diarios
+
+on:
+  schedule:
+    # Lunes a viernes a las 22:17 UTC, después del cierre de la bolsa de Nueva York
+    # (16:00 hora de NY = 20:00 o 21:00 UTC según horario de verano).
+    - cron: "17 22 * * 1-5"
+  workflow_dispatch: # permite ejecutarlo a mano desde la pestaña Actions
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Configurar conexión a la base de datos
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          mkdir -p .streamlit
+          printf '[connections.postgresql]\nurl = "%s"\n' "$DATABASE_URL" > .streamlit/secrets.toml
+
+      - name: Actualizar precios y metadatos
+        run: python actualizar_datos.py

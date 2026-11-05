@@ -14,6 +14,9 @@
 # Yahoo suele bloquear `info` desde servidores en la nube, así que cada vez que
 # la app (o actualizar_metadatos.py) los obtiene bien en tu computadora, quedan
 # en la base y la app en línea los usa como respaldo.
+#
+# Por último, guarda los precios de cierre diarios (tabla precios_diarios), que
+# llena el proceso diario actualizar_datos.py (GitHub Action).
 
 import json
 import os
@@ -46,6 +49,15 @@ CREATE TABLE IF NOT EXISTS metadatos (
 )
 """
 
+SQL_CREAR_TABLA_PRECIOS = """
+CREATE TABLE IF NOT EXISTS precios_diarios (
+    simbolo  TEXT             NOT NULL,
+    fecha    DATE             NOT NULL,
+    cierre   DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (simbolo, fecha)
+)
+"""
+
 SQL_GUARDAR_METADATO = """
 INSERT INTO metadatos (tipo, simbolo, datos) VALUES (:tipo, :simbolo, :datos)
 ON CONFLICT (tipo, simbolo) DO UPDATE SET datos = excluded.datos
@@ -67,6 +79,7 @@ def _conexion():
     with conn.session as s:
         s.execute(text(SQL_CREAR_TABLA))
         s.execute(text(SQL_CREAR_TABLA_METADATOS))
+        s.execute(text(SQL_CREAR_TABLA_PRECIOS))
         s.commit()
     return conn
 
@@ -212,3 +225,30 @@ def guardar_metadatos(metadatos):
 def guardar_metadato(clave, simbolo, valores):
     """Atajo para guardar los metadatos de un solo ticker (clave = 'etf_list' o 'stock_list')."""
     guardar_metadatos({clave: {simbolo: valores}})
+
+
+# ------------------------------------------------------------------------------
+# Precios de cierre diarios
+# ------------------------------------------------------------------------------
+def guardar_precios(precios):
+    """Reemplaza la tabla precios_diarios por `precios` (DataFrame con fechas como índice
+    y un ticker por columna, como lo devuelve yf.download(...)['Close']).
+
+    Se reemplaza todo en vez de agregar solo los días nuevos porque los precios ajustados
+    (auto_adjust=True) cambian hacia atrás cada vez que hay dividendos o splits.
+    Devuelve el número de filas guardadas."""
+    largo = precios.stack().dropna()
+    filas = [
+        {'simbolo': str(simbolo), 'fecha': fecha.date(), 'cierre': float(cierre)}
+        for (fecha, simbolo), cierre in largo.items()
+    ]
+    if not filas:
+        return 0
+    with _conexion().session as s:
+        s.execute(text('DELETE FROM precios_diarios'))
+        s.execute(text(
+            'INSERT INTO precios_diarios (simbolo, fecha, cierre) '
+            'VALUES (:simbolo, :fecha, :cierre)'
+        ), filas)
+        s.commit()
+    return len(filas)
