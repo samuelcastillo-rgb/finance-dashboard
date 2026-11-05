@@ -3,7 +3,8 @@
 # pero también se puede correr a mano: python actualizar_datos.py).
 #
 # 1. Lee la lista de tickers de la base de datos.
-# 2. Descarga 5 años de precios de cierre ajustados y los guarda en precios_diarios.
+# 2. Descarga 5 años de precios de cierre ajustados (de los tickers analizados y de los
+#    del portafolio personal) y los guarda en precios_diarios.
 # 3. Calcula el registro de cada ticker (nombre, categoría/sector, fundamentales,
 #    ratios de estados financieros) con datos_mercado.py y lo guarda en la tabla
 #    metricas. Esto también actualiza los metadatos. Si Yahoo falla con un ticker,
@@ -83,7 +84,8 @@ def main():
         print("ERROR: la lista de tickers está vacía")
         return 1
 
-    con_precios = actualizar_precios(tickers)
+    # También los precios de los tickers del portafolio personal que no estén en las listas
+    con_precios = actualizar_precios(list(dict.fromkeys(tickers + almacenamiento.tickers_de_posiciones())))
 
     n_ok, n_total = actualizar_metricas(etfs, acciones)
     if n_ok == 0:
