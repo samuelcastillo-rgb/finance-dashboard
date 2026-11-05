@@ -19,6 +19,9 @@
 # registros de cada ticker con sus fundamentales (tabla metricas), que llena el
 # proceso diario actualizar_datos.py (GitHub Action). La app los lee de aquí en vez
 # de consultar a Yahoo en cada visita.
+#
+# También guarda las compras del portafolio personal (tabla posiciones). Estas
+# solo se guardan en la base, nunca en un archivo del repositorio (que es público).
 
 import json
 import os
@@ -79,6 +82,16 @@ ON CONFLICT (tipo, simbolo) DO UPDATE
 SET datos = excluded.datos, actualizado = excluded.actualizado
 """
 
+SQL_CREAR_TABLA_POSICIONES = """
+CREATE TABLE IF NOT EXISTS posiciones (
+    orden    INTEGER          NOT NULL PRIMARY KEY,
+    simbolo  TEXT             NOT NULL,
+    fecha    DATE,
+    precio   DOUBLE PRECISION NOT NULL,
+    cantidad DOUBLE PRECISION NOT NULL
+)
+"""
+
 SQL_GUARDAR_METADATO = """
 INSERT INTO metadatos (tipo, simbolo, datos) VALUES (:tipo, :simbolo, :datos)
 ON CONFLICT (tipo, simbolo) DO UPDATE SET datos = excluded.datos
@@ -102,6 +115,7 @@ def _conexion():
         s.execute(text(SQL_CREAR_TABLA_METADATOS))
         s.execute(text(SQL_CREAR_TABLA_PRECIOS))
         s.execute(text(SQL_CREAR_TABLA_METRICAS))
+        s.execute(text(SQL_CREAR_TABLA_POSICIONES))
         s.commit()
     return conn
 
@@ -350,3 +364,47 @@ def cargar_metricas():
             if actualizado is not None and (fecha is None or actualizado > fecha):
                 fecha = actualizado
     return datos, fecha
+
+
+# ------------------------------------------------------------------------------
+# Portafolio personal (compras: ticker, fecha, precio, cantidad)
+# ------------------------------------------------------------------------------
+def cargar_posiciones():
+    """DataFrame con columnas Ticker, Fecha, Precio_Compra, Cantidad, o None si no hay base
+    configurada (en ese caso la app las guarda solo mientras dure la sesión)."""
+    if not hay_base_de_datos():
+        return None
+    with _conexion().session as s:
+        filas = s.execute(text(
+            'SELECT simbolo, fecha, precio, cantidad FROM posiciones ORDER BY orden'
+        )).fetchall()
+    return pd.DataFrame([tuple(f) for f in filas],
+                        columns=['Ticker', 'Fecha', 'Precio_Compra', 'Cantidad'])
+
+
+def guardar_posiciones(posiciones):
+    """Reemplaza todas las compras guardadas por `posiciones` (en una transacción)."""
+    filas = [
+        {'orden': i, 'simbolo': str(f.Ticker), 'fecha': f.Fecha if pd.notna(f.Fecha) else None,
+         'precio': float(f.Precio_Compra), 'cantidad': float(f.Cantidad)}
+        for i, f in enumerate(posiciones.itertuples(index=False))
+    ]
+    with _conexion().session as s:
+        s.execute(text('DELETE FROM posiciones'))
+        if filas:
+            s.execute(text(
+                'INSERT INTO posiciones (orden, simbolo, fecha, precio, cantidad) '
+                'VALUES (:orden, :simbolo, :fecha, :precio, :cantidad)'
+            ), filas)
+        s.commit()
+
+
+def tickers_de_posiciones():
+    """Tickers del portafolio personal (para que el proceso diario guarde sus precios)."""
+    try:
+        posiciones = cargar_posiciones()
+    except Exception:
+        return []
+    if posiciones is None or posiciones.empty:
+        return []
+    return list(dict.fromkeys(posiciones['Ticker'].astype(str)))
