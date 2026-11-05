@@ -5,9 +5,7 @@
 # los módulos de cálculo (etf_ratios.py, stock_ratios.py) no conocen la presentación.
 
 import html
-import json
 import threading
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
@@ -22,6 +20,7 @@ from streamlit.runtime.scriptrunner import add_script_run_ctx, get_script_run_ct
 import etf_ratios as er
 import stock_ratios as sr
 import almacenamiento
+import datos_mercado as dm
 
 
 # Respaldo de metadatos (nombre, categoría, sector) para cuando Yahoo bloquea `info`:
@@ -322,37 +321,28 @@ if 'ultima_actualizacion' not in st.session_state:
 # 3. FUNCIONES DE CARGA DE DATOS CON CACHÉ DINÁMICO
 # ------------------------------------------------------------------------------
 
-# --- CONEXIÓN CON YAHOO FINANCE DESDE LA NUBE ---
-# No se pasa una sesión propia: yfinance usa curl_cffi, que imita la huella TLS de un navegador.
-# Una sesión de `requests` con cabeceras falsas no la imita, y Yahoo suele bloquear `info`
-# (error 429) desde servidores en la nube aunque los precios sí se descarguen.
-
-# Hilos simultáneos para consultar Yahoo (info y estados financieros son E/S de red).
-# Más hilos acelera la carga inicial pero aumenta el riesgo de que Yahoo limite peticiones.
-MAX_HILOS_YAHOO = 4
-INTENTOS_INFO = 3
+# Hilos simultáneos para consultar Yahoo en vivo (solo para tickers que aún no están en la base).
+# La lógica de consulta a Yahoo vive en datos_mercado.py.
+MAX_HILOS_YAHOO = dm.MAX_HILOS_YAHOO
 
 
-def obtener_info(ticker):
-    """`ticker.info` con reintentos y espera creciente (Yahoo rechaza ráfagas con 429).
-    Devuelve {} si no hay respuesta útil tras todos los intentos."""
-    for intento in range(INTENTOS_INFO):
-        try:
-            info = ticker.info or {}
-            # Una respuesta bloqueada suele traer solo un par de claves sin datos
-            if len(info) > 5:
-                return info
-        except Exception:
-            pass
-        if intento < INTENTOS_INFO - 1:
-            time.sleep(1.5 * (intento + 1))
-    return {}
+# --- DATOS DEL PROCESO DIARIO (BASE DE DATOS) ---
+# actualizar_datos.py (GitHub Action) guarda cada día precios y registros por ticker.
+# La app los lee de la base y solo consulta a Yahoo en vivo los tickers que aún no
+# están (por ejemplo, uno recién agregado). Sin base configurada, todo va en vivo.
+@st.cache_data(ttl=600, show_spinner="Leyendo datos guardados…")
+def cargar_metricas_guardadas():
+    return almacenamiento.cargar_metricas()
+
+
+@st.cache_data(ttl=600, show_spinner="Leyendo precios guardados…")
+def leer_precios_guardados(universo_tuple):
+    return almacenamiento.cargar_precios(list(universo_tuple))
 
 
 @st.cache_data(ttl=3600, show_spinner="Descargando precios históricos…")
-def descargar_precios_cierre(universo_tuple, period="5y"):
-    """Precios de cierre ajustados de TODOS los tickers en una sola descarga (columnas = tickers).
-    Sustituye a una descarga por ticker: es la parte más lenta de la carga inicial."""
+def descargar_precios_yahoo(universo_tuple, period="5y"):
+    """Precios de cierre ajustados de los tickers dados en una sola descarga (columnas = tickers)."""
     if not universo_tuple:
         return pd.DataFrame()
     try:
@@ -363,6 +353,23 @@ def descargar_precios_cierre(universo_tuple, period="5y"):
     if isinstance(precios, pd.Series):
         precios = precios.to_frame(name=universo_tuple[0])
     return precios
+
+
+def descargar_precios_cierre(universo_tuple):
+    """Precios de cierre de TODOS los tickers (columnas = tickers): los guardados en la base
+    y, solo para los que falten, una descarga en vivo de Yahoo."""
+    guardados = leer_precios_guardados(universo_tuple)
+    faltan = tuple(t for t in universo_tuple if t not in guardados.columns)
+    if not faltan:
+        return guardados
+    en_vivo = descargar_precios_yahoo(faltan)
+    if guardados.empty:
+        return en_vivo
+    if en_vivo.empty:
+        return guardados
+    en_vivo = en_vivo.copy()
+    en_vivo.index = pd.to_datetime(en_vivo.index).tz_localize(None).normalize()
+    return guardados.join(en_vivo, how='outer')
 
 
 def serie_precios(precios, symbol):
@@ -404,77 +411,17 @@ def obtener_en_paralelo(funcion, simbolos, texto_barra):
 # ------------------------------------------------------------------------------
 @st.cache_data(ttl=3600)
 def obtener_metrica_etf_individual(symbol):
-    try:
-        etf = yf.Ticker(symbol)
-        info = obtener_info(etf)
-
-        # Soportar ambas formas posibles en las que se pudo haber guardado el JSON
-        dict_etfs = CACHE_GLOBAL.get("etfs") or CACHE_GLOBAL.get("etf_list") or {}
-        fallback = dict_etfs.get(symbol.upper(), {
-            'Nombre': symbol, 'Category': 'General', 'Expense_Ratio_%': 0.0, 'AUM_BUSD': 0.0
-        })
-
-        nombre = info.get('shortName') or info.get('longName') or fallback.get('Nombre', symbol)
-
-        categoria = (
-            info.get('category') or info.get('legalType') or
-            info.get('quoteType') or info.get('fundFamily')
-        )
-        if not categoria or categoria in ['General', 'Sin Categoría']:
-            categoria = fallback.get('Category', 'General')
-
-        exp_raw = info.get('netExpenseRatio') or info.get('annualReportExpenseRatio') or info.get('expenseRatio')
-        if exp_raw is not None and float(exp_raw) > 0:
-            exp_float = float(exp_raw)
-            exp_ratio = round(exp_float * 100, 3) if exp_float < 0.005 else round(exp_float, 3)
-        else:
-            exp_ratio = fallback.get('Expense_Ratio_%', 0.0)
-
-        aum_raw = info.get('totalAssets')
-        if aum_raw and float(aum_raw) > 0:
-            aum_busd = round(float(aum_raw) / 1e9, 2)
-        else:
-            aum_busd = fallback.get('AUM_BUSD', 0.0)
-
-        # Yahoo respondió con datos reales: los guardamos en la base para la app en línea
-        if info and categoria not in ['General', 'Sin Categoría']:
-            almacenamiento.guardar_metadato('etf_list', symbol.upper(), {
-                'Nombre': nombre, 'Category': categoria,
-                'Expense_Ratio_%': exp_ratio, 'AUM_BUSD': aum_busd
-            })
-
-        raw_52w = info.get('52WeekChange')
-        change_52w = round(float(raw_52w) * 100, 2) if raw_52w is not None else 0.0
-
-        fund = {
-            'Nombre': nombre,
-            'Category': categoria,
-            'Expense_Ratio_%': exp_ratio,
-            'AUM_BUSD': aum_busd,
-            '52W_Change_%': change_52w
-        }
-
-        # El rendimiento (CAGR, Sortino, etc.) se calcula en cargar_datos_etfs a partir de la
-        # descarga conjunta de precios.
-
-        # Rendimiento por dividendo (informativo, no entra al score)
-        try:
-            rendimiento = er.get_etf_fundamentals(etf).get('Yield_%', 0.0)
-        except Exception:
-            rendimiento = 0.0
-
-        reg = {'Ticker': symbol}
-        reg.update(fund)
-        reg['Yield_%'] = rendimiento
-        return reg
-    except Exception:
-        return None
-
+    return dm.obtener_metrica_etf(symbol, CACHE_GLOBAL)
 
 def cargar_datos_etfs(universo_tuple, precios):
+    # Registros del proceso diario; solo los ETFs que falten se consultan en vivo a Yahoo
+    guardados = cargar_metricas_guardadas()[0].get('etf_list', {})
+    faltan = [s for s in universo_tuple if s not in guardados]
+    en_vivo = dict(zip(faltan, obtener_en_paralelo(obtener_metrica_etf_individual, faltan, "Cargando ETFs")))
+
     resultados = []
-    for symbol, datos_etf in zip(universo_tuple,
-                                 obtener_en_paralelo(obtener_metrica_etf_individual, universo_tuple, "Cargando ETFs")):
+    for symbol in universo_tuple:
+        datos_etf = guardados.get(symbol) or en_vivo.get(symbol)
         if datos_etf:
             # etf_ratios calcula CAGR, Volatilidad, Sharpe, Sortino y Max Drawdown con las
             # mismas fórmulas que stock_ratios para CAGR/Volatilidad/Sortino.
@@ -527,93 +474,18 @@ def cargar_datos_etfs(universo_tuple, precios):
 # ------------------------------------------------------------------------------
 @st.cache_data(ttl=3600)
 def obtener_metrica_individual(symbol):
-    try:
-        stock = yf.Ticker(symbol)
-        info = obtener_info(stock)
+    return dm.obtener_metrica_accion(symbol, CACHE_GLOBAL)
 
-        dict_stocks = CACHE_GLOBAL.get("stocks") or CACHE_GLOBAL.get("stock_list") or {}
-        fallback = dict_stocks.get(symbol.upper(), {
-            'Empresa': symbol, 'Sector': 'General'
-        })
-
-        empresa = info.get('shortName') or info.get('longName') or fallback.get('Empresa', symbol)
-
-        sector = info.get('sector') or info.get('industry')
-        if not sector or sector in ['General', 'Sin Sector']:
-            sector = fallback.get('Sector', 'General')
-
-        # Yahoo respondió con datos reales: los guardamos en la base para la app en línea
-        if info and sector not in ['General', 'Sin Sector']:
-            almacenamiento.guardar_metadato('stock_list', symbol.upper(), {
-                'Empresa': empresa, 'Sector': sector,
-                'Industry': info.get('industry') or fallback.get('Industry', 'General')
-            })
-
-        # Sin dato de Yahoo -> None ("—" en la tabla), no un +0.00% engañoso
-        try:
-            raw_52w = info.get('52WeekChange')
-            change_52w = round(float(raw_52w) * 100, 2) if raw_52w is not None else None
-        except Exception:
-            change_52w = None
-
-        try:
-            bs = stock.balance_sheet
-            cf = stock.cashflow
-            fin = stock.financials
-        except Exception:
-            bs, cf, fin = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
-
-        # Columnas informativas (no entran al score): si Yahoo no trae la fila, "sin dato" (None)
-        try:
-            clave_eq = next((k for k in ['Stockholders Equity', 'Total Equity Gross Minority Interest', 'Common Stock Equity'] if k in bs.index), None)
-            cagr_equity = sr.calcular_cagr_serie(bs.loc[clave_eq]) if clave_eq is not None else None
-        except Exception:
-            cagr_equity = None
-
-        try:
-            clave_fcf = next((k for k in ['Free Cash Flow', 'FreeCashFlow'] if k in cf.index), None)
-            cagr_fcf = sr.calcular_cagr_serie(cf.loc[clave_fcf]) if clave_fcf is not None else None
-        except Exception:
-            cagr_fcf = None
-
-        try:
-            clave_ebitda = next((k for k in ['Normalized EBITDA', 'EBITDA'] if k in fin.index), None)
-            cagr_ebitda = sr.calcular_cagr_serie(fin.loc[clave_ebitda]) if clave_ebitda is not None else None
-        except Exception:
-            cagr_ebitda = None
-
-        try:
-            fund = sr.get_stock_fundamentals(stock) if hasattr(sr, 'get_stock_fundamentals') else {}
-        except Exception:
-            fund = {}
-
-        # El rendimiento (CAGR, Sortino) se calcula en cargar_datos_acciones a partir de la
-        # descarga conjunta de precios.
-        reg = {
-            'Ticker': symbol,
-            'Empresa': empresa,
-            'Sector': sector,
-            '52W_Change_%': change_52w,
-            'CAGR_Equity_%': cagr_equity,
-            'CAGR_FCF_%': cagr_fcf,
-            'CAGR_EBITDA_%': cagr_ebitda
-        }
-
-        if 'Empresa' in fund: del fund['Empresa']
-        if 'Sector' in fund: del fund['Sector']
-
-        reg.update(fund)
-
-        return reg
-    except Exception:
-        return {'Ticker': symbol, 'Score_Final': 0, 'Sector': 'General', 'Empresa': symbol}
-
-
-# 2. Orquestador: consulta en paralelo los tickers (los ya cacheados vuelven al instante)
+# 2. Orquestador: usa los registros guardados y consulta en paralelo solo los que falten
 def cargar_datos_acciones(universo_tuple, precios):
+    # Registros del proceso diario; solo las acciones que falten se consultan en vivo a Yahoo
+    guardados = cargar_metricas_guardadas()[0].get('stock_list', {})
+    faltan = [s for s in universo_tuple if s not in guardados]
+    en_vivo = dict(zip(faltan, obtener_en_paralelo(obtener_metrica_individual, faltan, "Cargando acciones")))
+
     resultados = []
-    for symbol, datos_accion in zip(universo_tuple,
-                                    obtener_en_paralelo(obtener_metrica_individual, universo_tuple, "Cargando acciones")):
+    for symbol in universo_tuple:
+        datos_accion = guardados.get(symbol) or en_vivo.get(symbol)
         if datos_accion:
             datos_accion = dict(datos_accion)
             datos_accion.update(sr.calculate_stock_performance_from_prices(serie_precios(precios, symbol)))
@@ -1057,12 +929,19 @@ def mostrar_explicacion_score(componentes, unidad):
 # ------------------------------------------------------------------------------
 # 5. ESTRUCTURA CON PESTAÑAS (ETFs Y ACCIONES)
 # ------------------------------------------------------------------------------
+# Fecha de los datos: la del último proceso diario si se leyó de la base
+fecha_proceso_diario = cargar_metricas_guardadas()[1]
+if fecha_proceso_diario is not None:
+    texto_actualizado = f"Datos al {fecha_proceso_diario:%d/%m/%Y %H:%M} UTC"
+else:
+    texto_actualizado = f"Actualizado {st.session_state.ultima_actualizacion:%d/%m/%Y %H:%M}"
+
 st.markdown(
     '<div class="app-header"><div>'
     '<div class="app-title">Finance Quantitative Dashboard</div>'
     '<div class="app-subtitle">Score cuantitativo de ETFs y acciones individuales, '
     'calculado por percentiles dentro de tu universo</div></div>'
-    f'<div class="app-stamp">Actualizado {st.session_state.ultima_actualizacion:%d/%m/%Y %H:%M}</div></div>',
+    f'<div class="app-stamp">{texto_actualizado}</div></div>',
     unsafe_allow_html=True)
 
 tab_etf, tab_stock = st.tabs([f"📊 ETFs ({len(st.session_state.etf_list)})",
