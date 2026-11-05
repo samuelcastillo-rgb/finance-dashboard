@@ -15,14 +15,18 @@
 # la app (o actualizar_metadatos.py) los obtiene bien en tu computadora, quedan
 # en la base y la app en línea los usa como respaldo.
 #
-# Por último, guarda los precios de cierre diarios (tabla precios_diarios), que
-# llena el proceso diario actualizar_datos.py (GitHub Action).
+# Por último, guarda los precios de cierre diarios (tabla precios_diarios) y los
+# registros de cada ticker con sus fundamentales (tabla metricas), que llena el
+# proceso diario actualizar_datos.py (GitHub Action). La app los lee de aquí en vez
+# de consultar a Yahoo en cada visita.
 
 import json
 import os
 
+import pandas as pd
+
 import streamlit as st
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 
 ARCH_TICKERS = 'portfolio_tickers.json'
 ARCH_METADATOS = 'metadata_cache.json'
@@ -58,6 +62,23 @@ CREATE TABLE IF NOT EXISTS precios_diarios (
 )
 """
 
+SQL_CREAR_TABLA_METRICAS = """
+CREATE TABLE IF NOT EXISTS metricas (
+    tipo        TEXT      NOT NULL,
+    simbolo     TEXT      NOT NULL,
+    datos       TEXT      NOT NULL,
+    actualizado TIMESTAMP NOT NULL,
+    PRIMARY KEY (tipo, simbolo)
+)
+"""
+
+SQL_GUARDAR_METRICA = """
+INSERT INTO metricas (tipo, simbolo, datos, actualizado)
+VALUES (:tipo, :simbolo, :datos, :actualizado)
+ON CONFLICT (tipo, simbolo) DO UPDATE
+SET datos = excluded.datos, actualizado = excluded.actualizado
+"""
+
 SQL_GUARDAR_METADATO = """
 INSERT INTO metadatos (tipo, simbolo, datos) VALUES (:tipo, :simbolo, :datos)
 ON CONFLICT (tipo, simbolo) DO UPDATE SET datos = excluded.datos
@@ -80,6 +101,7 @@ def _conexion():
         s.execute(text(SQL_CREAR_TABLA))
         s.execute(text(SQL_CREAR_TABLA_METADATOS))
         s.execute(text(SQL_CREAR_TABLA_PRECIOS))
+        s.execute(text(SQL_CREAR_TABLA_METRICAS))
         s.commit()
     return conn
 
@@ -252,3 +274,79 @@ def guardar_precios(precios):
         ), filas)
         s.commit()
     return len(filas)
+
+
+def cargar_precios(simbolos):
+    """Precios de cierre guardados para `simbolos`: DataFrame con fechas como índice ('Date')
+    y un ticker por columna, igual que yf.download(...)['Close']. Vacío si no hay base o datos."""
+    if not simbolos or not hay_base_de_datos():
+        return pd.DataFrame()
+    consulta = text(
+        'SELECT fecha, simbolo, cierre FROM precios_diarios WHERE simbolo IN :simbolos'
+    ).bindparams(bindparam('simbolos', expanding=True))
+    try:
+        with _conexion().session as s:
+            filas = s.execute(consulta, {'simbolos': list(simbolos)}).fetchall()
+    except Exception:
+        return pd.DataFrame()
+    if not filas:
+        return pd.DataFrame()
+    largo = pd.DataFrame(filas, columns=['fecha', 'simbolo', 'cierre'])
+    largo['fecha'] = pd.to_datetime(largo['fecha'])
+    precios = largo.pivot(index='fecha', columns='simbolo', values='cierre').sort_index()
+    precios.index.name = 'Date'
+    precios.columns.name = None
+    return precios
+
+
+# ------------------------------------------------------------------------------
+# Métricas por ticker (registro con fundamentales que calcula datos_mercado.py)
+# ------------------------------------------------------------------------------
+def _a_json(valor):
+    """Convierte tipos de numpy/pandas a tipos que json entiende."""
+    if hasattr(valor, 'item'):
+        return valor.item()
+    if hasattr(valor, 'isoformat'):
+        return valor.isoformat()
+    return str(valor)
+
+
+def guardar_metricas(clave, registros, actualizado):
+    """Guarda {simbolo: registro} (clave = 'etf_list' o 'stock_list'). Los tickers que no
+    vienen en `registros` conservan su registro anterior. Devuelve el número guardado."""
+    filas = [
+        {'tipo': TIPOS[clave], 'simbolo': simbolo,
+         'datos': json.dumps(registro, ensure_ascii=False, default=_a_json),
+         'actualizado': actualizado}
+        for simbolo, registro in registros.items()
+    ]
+    if not filas:
+        return 0
+    with _conexion().session as s:
+        s.execute(text(SQL_GUARDAR_METRICA), filas)
+        s.commit()
+    return len(filas)
+
+
+def cargar_metricas():
+    """({'etf_list': {simbolo: registro}, 'stock_list': {...}}, fecha_mas_reciente).
+    Sin base o con error devuelve listas vacías y None (la app consulta a Yahoo en vivo)."""
+    vacio = {clave: {} for clave in TIPOS}
+    if not hay_base_de_datos():
+        return vacio, None
+    try:
+        with _conexion().session as s:
+            filas = s.execute(text(
+                'SELECT tipo, simbolo, datos, actualizado FROM metricas'
+            )).fetchall()
+    except Exception:
+        return vacio, None
+    clave_por_tipo = {tipo: clave for clave, tipo in TIPOS.items()}
+    datos = {clave: {} for clave in TIPOS}
+    fecha = None
+    for tipo, simbolo, texto, actualizado in filas:
+        if tipo in clave_por_tipo:
+            datos[clave_por_tipo[tipo]][simbolo] = json.loads(texto)
+            if actualizado is not None and (fecha is None or actualizado > fecha):
+                fecha = actualizado
+    return datos, fecha
