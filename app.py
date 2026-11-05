@@ -46,7 +46,7 @@ PALETA = {
 }
 ESCALA_SCORE = [PALETA['riesgo'], PALETA['alerta'], PALETA['primario']]
 ESCALA_CORR = [PALETA['riesgo'], '#F8FAFC', PALETA['primario']]
-COLORES_COMPONENTES = ['#0F172A', '#1dbe83', '#38BDF8', '#F59E0B',
+COLORES_COMPONENTES = ['#6366F1', '#1dbe83', '#38BDF8', '#F59E0B',
                        '#A78BFA', '#F472B6', '#94A3B8', '#FB923C']
 
 # (umbral mínimo, nombre, clase CSS). El orden importa: de mayor a menor.
@@ -163,53 +163,35 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap');
 
-/* Color primario del tema */
-:root {
-    --primary-color: #1dbe83 !important;
-}
+/* Los colores de fondo, texto, pestañas, botones y barra lateral vienen del tema
+   (.streamlit/config.toml), que tiene versión clara y oscura. Aquí NO se fijan colores
+   de fondo ni de texto: los estilos propios se calculan a partir del color del texto
+   (currentColor), así que se ven bien en los dos modos. */
+:root { --verde: #1dbe83; --ambar: #F59E0B; --rojo: #EF4444; }
 
 /* Fuente general de la app */
 html, body, [class*="css"], .stApp {
     font-family: 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
-    background-color: #F8FAFC !important;
-    color: #0F172A !important;
 }
 
 .block-container { padding-top: 4.5rem !important; max-width: 1600px; }
 footer { visibility: hidden; }
 
-/* Avisos (st.warning/info) en el área principal: texto oscuro legible sobre fondo claro */
-[data-testid="stMain"] [data-testid="stAlertContainer"] p,
-[data-testid="stMain"] [data-testid="stAlertContainer"] li {
-    color: #0F172A !important;
-}
-
-/* Etiquetas de pestañas no seleccionadas siempre visibles */
-[data-baseweb="tab-list"] button[aria-selected="false"] p { color: #334155 !important; }
-
 /* Títulos principales */
 h1, h2, h3, h4, h5, h6 {
     font-family: 'DM Sans', system-ui, sans-serif !important;
-    color: #0F172A !important;
     font-weight: 800 !important;
 }
 
-/* Pestañas (Tabs) */
-[data-baseweb="tab"] p, button[data-baseweb="tab"] * {
-    color: #334155 !important;
-    font-size: 15px !important;
-    font-weight: 700 !important;
-}
-[aria-selected="true"] p, button[aria-selected="true"] * {
-    color: #1dbe83 !important;
+/* Pestañas: solo tamaño y grosor; el color lo pone el tema */
+[data-testid="stTab"] p { font-size: 15px !important; font-weight: 700 !important; }
+[data-testid="stTab"][aria-selected="true"] { color: inherit !important; }
+[data-testid="stTab"][aria-selected="true"] p {
+    color: color-mix(in srgb, var(--verde) 75%, currentColor) !important;
     font-weight: 800 !important;
 }
-[data-baseweb="tab-highlight"] { background-color: #1dbe83 !important; }
 
-/* --- BARRA LATERAL (SIDEBAR) --- */
-[data-testid="stSidebar"] { background-color: #0F172A !important; }
-
-/* Aplicar fuente solo a textos reales, NO a los iconos */
+/* Barra lateral: solo la fuente (los colores vienen de [theme.*.sidebar]) */
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] label,
 [data-testid="stSidebar"] h1,
@@ -217,8 +199,8 @@ h1, h2, h3, h4, h5, h6 {
 [data-testid="stSidebar"] h3,
 [data-testid="stSidebar"] .stCaption {
     font-family: 'DM Sans', system-ui, sans-serif !important;
-    color: #F8FAFC !important;
 }
+.separador-lateral { margin: 15px 0; border: 0; border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent); }
 
 /* RESTAURAR FUENTE DE ICONOS DE STREAMLIT (MATERIAL SYMBOLS) */
 [data-testid="stIconMaterial"],
@@ -229,55 +211,65 @@ h1, h2, h3, h4, h5, h6 {
     font-family: "Material Symbols Rounded", "Material Symbols Outlined", "Material Icons" !important;
 }
 
+/* Colores derivados del texto: funcionan sobre fondo claro y oscuro */
+.app-header, .kpi-card, .leader-card, .app-stamp, .bar {
+    --suave: color-mix(in srgb, currentColor 62%, transparent);
+    --linea: color-mix(in srgb, currentColor 14%, transparent);
+    --superficie: color-mix(in srgb, currentColor 4%, transparent);
+}
+
 /* Encabezado de la app */
 .app-header {
     display: flex; justify-content: space-between; align-items: flex-end;
     gap: 16px; margin-bottom: 14px; flex-wrap: wrap;
 }
-.app-title { font-size: 30px; font-weight: 800; color: #0F172A; line-height: 1.1; }
-.app-subtitle { font-size: 14px; color: #64748B; margin-top: 4px; }
+.app-title { font-size: 30px; font-weight: 800; line-height: 1.1; }
+.app-subtitle { font-size: 14px; color: var(--suave); margin-top: 4px; }
 .app-stamp {
-    font-size: 12px; font-weight: 700; color: #64748B; background: #FFFFFF;
-    border: 1px solid #E2E8F0; border-radius: 999px; padding: 5px 12px;
+    font-size: 12px; font-weight: 700; color: var(--suave); background: var(--superficie);
+    border: 1px solid var(--linea); border-radius: 999px; padding: 5px 12px;
 }
 
 /* Títulos de sección dentro de tarjetas */
-.section-title { font-size: 16px; font-weight: 800; color: #0F172A; margin-bottom: 2px; }
-.section-help { font-size: 12.5px; color: #64748B; margin-bottom: 8px; }
+.section-title { font-size: 16px; font-weight: 800; margin-bottom: 2px; }
+.section-help { font-size: 12.5px; opacity: .68; margin-bottom: 8px; }
 
 /* Tarjetas KPI */
 .kpi-card {
-    background-color: #FFFFFF; padding: 16px 14px; border-radius: 14px;
-    border: 1px solid #E2E8F0; border-top: 4px solid #1dbe83;
-    box-shadow: 0px 4px 12px rgba(15, 23, 42, 0.03); text-align: center;
+    background-color: var(--superficie); padding: 16px 14px; border-radius: 14px;
+    border: 1px solid var(--linea); border-top: 4px solid var(--verde);
+    box-shadow: 0px 4px 12px rgba(15, 23, 42, 0.04); text-align: center;
 }
-.kpi-title { font-size: 11.5px; color: #64748B; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
-.kpi-value { font-size: 26px; color: #0F172A; font-weight: 800; line-height: 1.25; }
-.kpi-sub { font-size: 13px; color: #0F9D6B; font-weight: 700; margin-top: 2px; }
+.kpi-title { font-size: 11.5px; color: var(--suave); font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.kpi-value { font-size: 26px; font-weight: 800; line-height: 1.25; }
+.kpi-sub { font-size: 13px; color: color-mix(in srgb, var(--verde) 70%, currentColor); font-weight: 700; margin-top: 2px; }
 
-/* Píldoras de nivel de score (el color nunca es el único indicador: lleva texto) */
+/* Píldoras de nivel de score (el color nunca es el único indicador: lleva texto).
+   Fondo translúcido del color y texto mezclado con el color del tema: se oscurece en
+   modo claro y se aclara en modo oscuro, con buen contraste en ambos. */
 .pill { display: inline-block; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
-.pill-excelente { background: #D1FAE5; color: #047857; }
-.pill-bueno { background: #ECFDF5; color: #0F9D6B; border: 1px solid #A7F3D0; }
-.pill-neutral { background: #FEF3C7; color: #B45309; }
-.pill-debil { background: #FEE2E2; color: #B91C1C; }
+.pill-excelente { background: color-mix(in srgb, var(--verde) 24%, transparent); color: color-mix(in srgb, var(--verde) 55%, currentColor); }
+.pill-bueno { background: color-mix(in srgb, var(--verde) 10%, transparent); color: color-mix(in srgb, var(--verde) 65%, currentColor);
+              border: 1px solid color-mix(in srgb, var(--verde) 40%, transparent); }
+.pill-neutral { background: color-mix(in srgb, var(--ambar) 20%, transparent); color: color-mix(in srgb, var(--ambar) 55%, currentColor); }
+.pill-debil { background: color-mix(in srgb, var(--rojo) 18%, transparent); color: color-mix(in srgb, var(--rojo) 60%, currentColor); }
 
 /* Tarjetas de líderes con barra de score */
 .leader-card {
-    background-color: #FFFFFF; padding: 12px 16px; border-radius: 12px;
-    margin-bottom: 10px; border: 1px solid #E2E8F0; border-left: 5px solid #1dbe83;
+    background-color: var(--superficie); padding: 12px 16px; border-radius: 12px;
+    margin-bottom: 10px; border: 1px solid var(--linea); border-left: 5px solid var(--verde);
 }
 .leader-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.leader-ticker { font-size: 16px; font-weight: 800; color: #0F172A; }
-.leader-sub { font-size: 12px; color: #64748B; margin-top: 2px; }
-.bar { height: 6px; background: #E2E8F0; border-radius: 999px; margin-top: 8px; overflow: hidden; }
+.leader-ticker { font-size: 16px; font-weight: 800; }
+.leader-sub { font-size: 12px; color: var(--suave); margin-top: 2px; }
+.bar { height: 6px; background: var(--linea); border-radius: 999px; margin-top: 8px; overflow: hidden; }
 .bar-fill { height: 100%; border-radius: 999px; }
-.bar-excelente { background: #1dbe83; }
+.bar-excelente { background: var(--verde); }
 .bar-bueno { background: #6EE7B7; }
-.bar-neutral { background: #F59E0B; }
-.bar-debil { background: #EF4444; }
+.bar-neutral { background: var(--ambar); }
+.bar-debil { background: var(--rojo); }
 
-.inspector-ticker { font-size: 24px; font-weight: 800; color: #0F172A; margin-right: 8px; }
+.inspector-ticker { font-size: 24px; font-weight: 800; margin-right: 8px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -640,7 +632,7 @@ if st.sidebar.button("🔄 Actualizar datos", width='stretch'):
     st.rerun()
 
 # --- FILTROS DE ANÁLISIS ---
-st.sidebar.markdown("<hr style='margin: 15px 0px; border-color: #334155;'>", unsafe_allow_html=True)
+st.sidebar.markdown("<hr class='separador-lateral'>", unsafe_allow_html=True)
 st.sidebar.caption("Filtros de Análisis")
 
 top_n = st.sidebar.slider("Top N en gráficos", min_value=5, max_value=30, value=10, step=1,
@@ -677,24 +669,20 @@ if score_minimo > 0:
 # 4.1 COMPONENTES VISUALES REUTILIZABLES
 # ------------------------------------------------------------------------------
 def aplicar_estilo_grafico(fig, altura=None, leyenda_abajo=False):
-    """Aplica contraste alto y tipografía uniforme a cualquier gráfico Plotly."""
+    """Tipografía y márgenes uniformes para cualquier gráfico Plotly.
+
+    Los colores de fondo, texto y cuadrícula no se fijan aquí: st.plotly_chart les aplica
+    los del tema activo (claro u oscuro), y cambian solos al cambiar de modo."""
     hay_titulo = bool(fig.layout.title.text)
     fig.update_layout(
-        font=dict(family=FUENTE_GRAFICOS, color=PALETA['texto'], size=12),
-        title_font=dict(family=FUENTE_GRAFICOS, color=PALETA['tinta'], size=15),
-        paper_bgcolor="#FFFFFF",
-        plot_bgcolor="#FFFFFF",
+        font=dict(family=FUENTE_GRAFICOS, size=12),
+        title_font=dict(family=FUENTE_GRAFICOS, size=15),
         margin=dict(l=10, r=10, t=50 if hay_titulo else 20, b=10),
         hoverlabel=dict(font_family=FUENTE_GRAFICOS),
-        legend=dict(font=dict(color=PALETA['texto'], size=11),
-                    title_font=dict(color=PALETA['tinta'], size=12)),
+        legend=dict(font=dict(size=11), title_font=dict(size=12)),
     )
-    fig.update_xaxes(title_font=dict(color=PALETA['tinta'], size=13),
-                     tickfont=dict(color="#06152B", size=11),
-                     gridcolor=PALETA['borde'], linecolor="#CBD5E1")
-    fig.update_yaxes(title_font=dict(color=PALETA['tinta'], size=13),
-                     tickfont=dict(color="#06152B", size=11),
-                     gridcolor=PALETA['borde'], linecolor="#CBD5E1")
+    fig.update_xaxes(title_font=dict(size=13), tickfont=dict(size=11))
+    fig.update_yaxes(title_font=dict(size=13), tickfont=dict(size=11))
     if altura:
         fig.update_layout(height=altura)
     if leyenda_abajo:
@@ -782,11 +770,10 @@ def grafico_radar(fila, componentes, nombre):
         line=dict(color=PALETA['suave'], dash='dot', width=1)))
     fig.update_layout(
         polar=dict(radialaxis=dict(range=[0, 100], tickvals=[25, 50, 75, 100],
-                                   gridcolor=PALETA['borde'], tickfont=dict(size=10)),
-                   angularaxis=dict(tickfont=dict(size=11, color=PALETA['tinta']))),
+                                   tickfont=dict(size=10)),
+                   angularaxis=dict(tickfont=dict(size=11))),
         showlegend=True, legend=dict(orientation='h', yanchor='top', y=-0.08, x=0),
-        font=dict(family=FUENTE_GRAFICOS, color=PALETA['texto']),
-        paper_bgcolor="#FFFFFF", margin=dict(l=40, r=40, t=20, b=30), height=340)
+        font=dict(family=FUENTE_GRAFICOS), margin=dict(l=40, r=40, t=20, b=30), height=340)
     return fig
 
 
@@ -806,8 +793,8 @@ def grafico_dispersion(df, x, y, col_tamano, hover_data, labels, top_n):
     if np.isfinite(mediana_y):
         fig.add_hline(y=float(mediana_y), line_dash='dot', line_color=PALETA['suave'], opacity=0.6)
     fig.update_traces(textposition='top center',
-                      textfont=dict(family=FUENTE_GRAFICOS, color=PALETA['tinta'], size=11),
-                      marker=dict(opacity=0.85, line=dict(width=1, color='#FFFFFF')))
+                      textfont=dict(family=FUENTE_GRAFICOS, size=11),
+                      marker=dict(opacity=0.85, line=dict(width=1, color='rgba(255,255,255,0.6)')))
     fig.update_coloraxes(colorbar=dict(title='Score', thickness=12))
     return aplicar_estilo_grafico(fig, altura=400)
 
@@ -828,9 +815,9 @@ def _color_variacion(valor):
     except (TypeError, ValueError):
         return ''
     if v > 0:
-        return 'color: #0F9D6B; font-weight: 600'
+        return 'color: #14B87A; font-weight: 600'
     if v < 0:
-        return 'color: #DC2626; font-weight: 600'
+        return 'color: #E5484D; font-weight: 600'
     return ''
 
 
