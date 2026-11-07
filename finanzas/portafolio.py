@@ -1,7 +1,7 @@
-# portafolio.py
+# finanzas/portafolio.py
 # Cálculos del portafolio personal: valoración de las compras (lotes), resumen por
 # ticker con su peso en la cartera y simulador de compra. No depende de Streamlit:
-# app.py se encarga de la presentación y almacenamiento.py de guardar las posiciones.
+# dashboard/pestanas/portafolio.py se encarga de la presentación y almacenamiento.py de guardar las posiciones.
 
 import numpy as np
 import pandas as pd

@@ -1,4 +1,4 @@
-# almacenamiento.py
+# finanzas/almacenamiento.py
 # Persistencia de las listas de tickers (ETFs y acciones).
 #
 # - Si hay una base de datos configurada en los secrets de Streamlit
@@ -33,7 +33,7 @@ import streamlit as st
 from sqlalchemy import bindparam, text
 
 # Rutas absolutas: funcionan sin importar desde qué carpeta se ejecute el código.
-CARPETA_DATOS = Path(__file__).resolve().parent / 'datos'
+CARPETA_DATOS = Path(__file__).resolve().parent.parent / 'datos'
 ARCH_TICKERS = CARPETA_DATOS / 'portfolio_tickers.json'
 ARCH_METADATOS = CARPETA_DATOS / 'metadata_cache.json'
 NOMBRE_CONEXION = 'postgresql'
@@ -178,7 +178,7 @@ def _guardar_db(datos):
 
 
 # ------------------------------------------------------------------------------
-# API pública usada por app.py
+# API pública usada por la app (dashboard/) y los scripts
 # ------------------------------------------------------------------------------
 def cargar_tickers(defecto):
     """Lee los tickers de la base (o del JSON si no hay base configurada)."""

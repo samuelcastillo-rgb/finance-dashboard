@@ -1,4 +1,4 @@
-# stock_ratios.py
+# finanzas/stock_ratios.py
 import yfinance as yf
 import pandas as pd
 import numpy as np

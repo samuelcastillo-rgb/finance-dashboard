@@ -11,7 +11,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-_DIST = Path(__file__).parent / "componentes" / "explorador" / "dist"
+_DIST = Path(__file__).resolve().parent.parent / "componentes" / "explorador" / "dist"
 
 # El salto de línea inicial es necesario: Streamlit interpreta un texto de una sola
 # línea (como el JS minificado) como ruta de archivo en vez de código.

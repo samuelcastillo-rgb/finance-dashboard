@@ -21,10 +21,10 @@ from datetime import datetime, timezone
 import pandas as pd
 import yfinance as yf
 
-import almacenamiento
-import datos_mercado as dm
+from finanzas import almacenamiento
+from finanzas import datos_mercado as dm
 
-PERIODO_PRECIOS = "5y"  # el mismo periodo que usa app.py
+PERIODO_PRECIOS = "5y"  # el mismo periodo que usa dashboard/carga.py
 
 
 def actualizar_precios(tickers):

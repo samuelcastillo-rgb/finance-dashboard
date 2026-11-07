@@ -1,4 +1,4 @@
-# etf_ratios.py
+# finanzas/etf_ratios.py
 import yfinance as yf
 import pandas as pd
 import numpy as np
