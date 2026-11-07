@@ -1,0 +1,15 @@
+{
+  "name": "explorador-graficas",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Componente de Streamlit (components v2) para explorar métricas eligiendo ejes X/Y.",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/explorador.ts --bundle --format=esm --target=es2020 --minify --outfile=dist/explorador.js && esbuild src/explorador.css --minify --outfile=dist/explorador.css",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.0",
+    "typescript": "5.7.3"
+  }
+}
