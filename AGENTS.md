@@ -2,24 +2,26 @@
 
 ## Project Scope
 
-- This workspace contains small Python functions for financial-ratio analysis using Yahoo Finance data.
-- Keep changes focused on calculation behavior and preserve the existing Spanish naming and comments unless the task requires otherwise.
-- Source filenames may contain spaces and mixed casing; do not rename them casually because import paths may depend on them.
+- Streamlit dashboard (`app.py`) that scores ETFs and stocks from Yahoo Finance data, plus a personal portfolio tab.
+- Preserve the existing Spanish naming and comments. Keep edits minimal and focused.
+- See `README.md` for the folder layout.
 
 ## Dependencies and Execution
 
-- `yfinance` is the primary external dependency. `pandas` is present in some modules but is not a documented project dependency yet.
-- There is no package configuration, test suite, CLI, or documented entry point. Validate changes by importing the affected module and exercising the changed function with a small controlled object or fixture.
-- Most modules expose functions only; do not add top-level network calls or execution side effects.
+- Dependencies are pinned in `requirements.txt` (Streamlit, pandas, numpy, plotly, yfinance, SQLAlchemy, psycopg).
+- Run the app with `streamlit run app.py` from the repository root.
+- Scripts in `scripts/` and tests in `tests/` are run as modules from the root: `python -m scripts.actualizar_datos`, `python -m tests.test_datos_faltantes`.
+- Calculation modules (`etf_ratios.py`, `stock_ratios.py`, `portafolio.py`, `datos_mercado.py`) expose functions only; do not add top-level network calls or execution side effects.
+- Local data files live in `datos/`; reference them through `almacenamiento.CARPETA_DATOS`, never with cwd-relative paths.
 
 ## Coding Conventions
 
-- Follow the existing `snake_case` function style and preserve public function names unless a rename is explicitly requested.
-- Financial data is read from Yahoo Finance-style `financials` and `balance_sheet` data frames. Handle missing statement rows consistently with the surrounding function.
-- Keep edits minimal. Avoid broad refactors, new frameworks, and unrelated formatting changes.
-- Add tests or a small reproducible validation script when a change affects ratio calculations; do not commit generated `__pycache__` artifacts.
+- Follow the existing `snake_case` style and keep public function names unless a rename is requested.
+- Missing financial data must be `None`/NaN ("sin dato"), never 0. Run `python -m tests.test_datos_faltantes` after changing ratio calculations.
+- Do not commit `__pycache__`, `node_modules`, `venv` or `.streamlit/secrets.toml`.
 
-## Font Family and Presentation
+## Presentation
 
-- This repository currently has no UI, HTML/CSS, plotting, or terminal presentation layer. Do not add font packages, font configuration, or presentation abstractions to calculation modules.
-- If a future task introduces a report, dashboard, or visualization, keep font-family decisions in that presentation layer and document the chosen font and fallback stack there. Do not let display concerns leak into financial calculations.
+- UI font: DM Sans with fallback `system-ui, -apple-system, Segoe UI, Roboto, sans-serif`, defined in `app.py`.
+- Theme colors come from `.streamlit/config.toml` (light and dark). Avoid hardcoded text/background colors in CSS or Plotly figures so both modes stay readable.
+- The TypeScript explorer lives in `componentes/explorador/`; after editing `src/`, run `npm run build` and commit `dist/`.

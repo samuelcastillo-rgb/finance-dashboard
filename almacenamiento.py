@@ -12,12 +12,12 @@
 #
 # También guarda los metadatos de cada ticker (nombre, categoría, sector...).
 # Yahoo suele bloquear `info` desde servidores en la nube, así que cada vez que
-# la app (o actualizar_metadatos.py) los obtiene bien en tu computadora, quedan
+# la app (o scripts/actualizar_metadatos.py) los obtiene bien en tu computadora, quedan
 # en la base y la app en línea los usa como respaldo.
 #
 # Por último, guarda los precios de cierre diarios (tabla precios_diarios) y los
 # registros de cada ticker con sus fundamentales (tabla metricas), que llena el
-# proceso diario actualizar_datos.py (GitHub Action). La app los lee de aquí en vez
+# proceso diario scripts/actualizar_datos.py (GitHub Action). La app los lee de aquí en vez
 # de consultar a Yahoo en cada visita.
 #
 # También guarda las compras del portafolio personal (tabla posiciones). Estas
@@ -25,14 +25,17 @@
 
 import json
 import os
+from pathlib import Path
 
 import pandas as pd
 
 import streamlit as st
 from sqlalchemy import bindparam, text
 
-ARCH_TICKERS = 'portfolio_tickers.json'
-ARCH_METADATOS = 'metadata_cache.json'
+# Rutas absolutas: funcionan sin importar desde qué carpeta se ejecute el código.
+CARPETA_DATOS = Path(__file__).resolve().parent / 'datos'
+ARCH_TICKERS = CARPETA_DATOS / 'portfolio_tickers.json'
+ARCH_METADATOS = CARPETA_DATOS / 'metadata_cache.json'
 NOMBRE_CONEXION = 'postgresql'
 
 # Clave en session_state / JSON  ->  valor de la columna "tipo" en la base
@@ -189,7 +192,7 @@ def cargar_tickers(defecto):
             _guardar_db(datos)
         return datos
     except Exception as e:
-        st.warning(f"No se pudo leer la base de datos; usando {ARCH_TICKERS}. ({e})")
+        st.warning(f"No se pudo leer la base de datos; usando {ARCH_TICKERS.name}. ({e})")
         return _cargar_json(defecto)
 
 

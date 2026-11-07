@@ -344,7 +344,7 @@ MAX_HILOS_YAHOO = dm.MAX_HILOS_YAHOO
 
 
 # --- DATOS DEL PROCESO DIARIO (BASE DE DATOS) ---
-# actualizar_datos.py (GitHub Action) guarda cada día precios y registros por ticker.
+# scripts/actualizar_datos.py (GitHub Action) guarda cada día precios y registros por ticker.
 # La app los lee de la base y solo consulta a Yahoo en vivo los tickers que aún no
 # están (por ejemplo, uno recién agregado). Sin base configurada, todo va en vivo.
 @st.cache_data(ttl=600, show_spinner="Leyendo datos guardados…")

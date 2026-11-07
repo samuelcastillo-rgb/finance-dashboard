@@ -30,4 +30,4 @@ jobs:
           printf '[connections.postgresql]\nurl = "%s"\n' "$DATABASE_URL" > .streamlit/secrets.toml
 
       - name: Actualizar precios y metadatos
-        run: python actualizar_datos.py
+        run: python -m scripts.actualizar_datos

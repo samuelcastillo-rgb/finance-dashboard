@@ -1,6 +1,6 @@
-# actualizar_datos.py
+# scripts/actualizar_datos.py
 # Proceso diario (lo ejecuta el GitHub Action .github/workflows/actualizar_datos.yml,
-# pero también se puede correr a mano: python actualizar_datos.py).
+# pero también se puede correr a mano: python -m scripts.actualizar_datos).
 #
 # 1. Lee la lista de tickers de la base de datos.
 # 2. Descarga 5 años de precios de cierre ajustados (de los tickers analizados y de los

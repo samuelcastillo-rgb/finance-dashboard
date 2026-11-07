@@ -1,8 +1,8 @@
-# validar_datos_faltantes.py
+# tests/test_datos_faltantes.py
 # Validación SIN red de cómo stock_ratios.py y etf_ratios.py tratan los datos faltantes:
 # un dato que Yahoo Finance no entrega debe salir como None ("sin dato"), nunca como 0.
 #
-# Uso:  python validar_datos_faltantes.py     (termina con "OK" si todo pasa)
+# Uso:  python -m tests.test_datos_faltantes    (termina con "OK" si todo pasa)
 from unittest.mock import patch
 
 import pandas as pd
