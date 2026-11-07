@@ -2,7 +2,7 @@ import json
 import time
 import yfinance as yf
 
-import almacenamiento
+from finanzas import almacenamiento
 
 ARCH_METADATOS = almacenamiento.ARCH_METADATOS
 

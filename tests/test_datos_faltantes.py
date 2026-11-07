@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 import pandas as pd
 
-import etf_ratios as er
-import stock_ratios as sr
+from finanzas import etf_ratios as er
+from finanzas import stock_ratios as sr
 
 
 class FalsaAccion:

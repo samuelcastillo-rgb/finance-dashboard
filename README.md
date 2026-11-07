@@ -8,20 +8,34 @@ App publicada: https://finance-dashboard-sam.streamlit.app
 ## Estructura
 
 ```
-├── app.py                  Punto de entrada de Streamlit (la interfaz)
-├── explorador.py           Puente Python del explorador de métricas (TypeScript)
-├── almacenamiento.py       Lectura/escritura en Postgres (Neon) o en datos/*.json
-├── datos_mercado.py        Consultas a Yahoo Finance compartidas por app y scripts
-├── etf_ratios.py           Métricas de ETFs
-├── stock_ratios.py         Métricas fundamentales de acciones
-├── portafolio.py           Cálculos del portafolio personal
-├── componentes/explorador/ Código TypeScript del explorador (src/ y dist/ compilado)
-├── scripts/                Procesos que se corren a mano o desde GitHub Actions
-├── datos/                  Respaldo local: lista de tickers y metadatos
-├── tests/                  Pruebas sin red
-├── .streamlit/config.toml  Tema claro/oscuro (secrets.toml NO se sube)
-└── .github/workflows/      Actualización diaria de datos
+├── app.py                    Punto de entrada: solo arma la página
+├── finanzas/                 Lógica de negocio (sin interfaz)
+│   ├── score.py              Fórmula del score, percentiles y cobertura
+│   ├── etf_ratios.py         Métricas de ETFs
+│   ├── stock_ratios.py       Métricas fundamentales de acciones
+│   ├── datos_mercado.py      Consultas a Yahoo Finance (app y scripts)
+│   ├── almacenamiento.py     Postgres (Neon) o respaldo en datos/*.json
+│   └── portafolio.py         Cálculos del portafolio personal
+├── dashboard/                Interfaz de Streamlit
+│   ├── config.py             Paleta, columnas del explorador, tickers por defecto
+│   ├── estilos.py            CSS global
+│   ├── carga.py              Carga de datos con caché (base + Yahoo en vivo)
+│   ├── barra_lateral.py      Gestor de tickers y filtros
+│   ├── graficos.py           Figuras de Plotly
+│   ├── tarjetas.py           KPIs, tarjetas, tablas e inspector
+│   ├── formato.py            Formato de números
+│   ├── explorador.py         Puente Python del explorador (TypeScript)
+│   └── pestanas/             etfs.py, acciones.py, portafolio.py
+├── componentes/explorador/   Código TypeScript del explorador (src/ y dist/ compilado)
+├── scripts/                  Procesos que se corren a mano o desde GitHub Actions
+├── datos/                    Respaldo local: lista de tickers y metadatos
+├── tests/                    Pruebas sin red
+├── .streamlit/config.toml    Tema claro/oscuro (secrets.toml NO se sube)
+└── .github/workflows/        Actualización diaria de datos
 ```
+
+Regla de dependencias: `dashboard/` puede importar de `finanzas/`, nunca al revés.
+`finanzas/` no dibuja nada (solo `almacenamiento.py` usa `st.secrets`/`st.connection` para leer la base).
 
 ## Correr en local
 

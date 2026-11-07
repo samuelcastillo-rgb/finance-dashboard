@@ -1,6 +1,6 @@
-# datos_mercado.py
+# finanzas/datos_mercado.py
 # Obtención de datos de Yahoo Finance por ticker (info, estados financieros, dividendos).
-# Lo usan app.py (para tickers que aún no están en la base) y scripts/actualizar_datos.py
+# Lo usan dashboard/carga.py (para tickers que aún no están en la base) y scripts/actualizar_datos.py
 # (proceso diario que guarda los registros en la base). No depende de Streamlit:
 # los cálculos son los mismos que antes vivían en app.py.
 
@@ -9,9 +9,9 @@ import time
 import pandas as pd
 import yfinance as yf
 
-import almacenamiento
-import etf_ratios as er
-import stock_ratios as sr
+from finanzas import almacenamiento
+from finanzas import etf_ratios as er
+from finanzas import stock_ratios as sr
 
 # --- CONEXIÓN CON YAHOO FINANCE DESDE LA NUBE ---
 # No se pasa una sesión propia: yfinance usa curl_cffi, que imita la huella TLS de un navegador.
