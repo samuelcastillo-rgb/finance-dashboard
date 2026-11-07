@@ -1,6 +1,6 @@
 # datos_mercado.py
 # Obtención de datos de Yahoo Finance por ticker (info, estados financieros, dividendos).
-# Lo usan app.py (para tickers que aún no están en la base) y actualizar_datos.py
+# Lo usan app.py (para tickers que aún no están en la base) y scripts/actualizar_datos.py
 # (proceso diario que guarda los registros en la base). No depende de Streamlit:
 # los cálculos son los mismos que antes vivían en app.py.
 

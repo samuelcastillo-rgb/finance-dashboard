@@ -4,7 +4,7 @@ import yfinance as yf
 
 import almacenamiento
 
-ARCH_METADATOS = "metadata_cache.json"
+ARCH_METADATOS = almacenamiento.ARCH_METADATOS
 
 
 def _info_real(simbolo):
@@ -79,6 +79,6 @@ def actualizar_metadatos(escribir_json=True):
 
 
 if __name__ == "__main__":
-    # Ejecutar desde la carpeta del proyecto: python actualizar_metadatos.py
+    # Ejecutar desde la carpeta del proyecto: python -m scripts.actualizar_metadatos
     actualizar_metadatos()
     print("¡Listo! metadata_cache.json generado exitosamente.")
