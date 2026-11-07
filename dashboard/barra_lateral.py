@@ -41,7 +41,8 @@ def inicializar_estado():
         st.session_state.stock_list = lista_stock_limpia
 
         # Si se encontraron y borraron duplicados desde el JSON, forzamos un guardado del archivo limpio
-        if len(lista_etf_limpia) < len(tickers_guardados.get('etf_list', [])) or len(lista_stock_limpia) < len(tickers_guardados.get('stock_list', [])):
+        if (len(lista_etf_limpia) < len(tickers_guardados.get('etf_list', []))
+                or len(lista_stock_limpia) < len(tickers_guardados.get('stock_list', []))):
             guardar_tickers_disco()
 
     if 'ultima_actualizacion' not in st.session_state:

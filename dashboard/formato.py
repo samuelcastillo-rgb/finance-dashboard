@@ -43,5 +43,5 @@ def _color_variacion(valor):
 
 def _mapear(estilo, funcion, subset):
     # Styler.map existe desde pandas 2.1; antes se llamaba applymap.
-    aplicar = getattr(estilo, 'map', None) or getattr(estilo, 'applymap')
+    aplicar = getattr(estilo, 'map', None) or estilo.applymap
     return aplicar(funcion, subset=subset)

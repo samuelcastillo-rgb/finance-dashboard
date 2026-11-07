@@ -1,7 +1,8 @@
 # finanzas/etf_ratios.py
-import yfinance as yf
-import pandas as pd
 import numpy as np
+import pandas as pd
+import yfinance as yf
+
 
 def get_etf_fundamentals(stock):
     """
@@ -10,15 +11,15 @@ def get_etf_fundamentals(stock):
     """
     try:
         info = stock.info
-        
+
         # Extracción del Expense Ratio
         ter = (
-            info.get('expenseRatio') or 
-            info.get('annualReportExpenseRatio') or 
-            info.get('netExpenseRatio') or 
+            info.get('expenseRatio') or
+            info.get('annualReportExpenseRatio') or
+            info.get('netExpenseRatio') or
             0
         )
-        
+
         # Respaldo desde el objeto funds_data si estuviera presente
         if ter == 0 and hasattr(stock, 'funds_data') and stock.funds_data:
             try:
@@ -28,20 +29,20 @@ def get_etf_fundamentals(stock):
 
         # yfinance entrega el dato directamente en valor porcentual (ej. 0.03 = 0.03%, 0.50 = 0.50%)
         ter_pct = ter
-        
+
         # Conversión de AUM a miles de millones de USD (Billions USD)
         aum_raw = info.get('totalAssets') or info.get('marketCap') or info.get('navPrice', 0) or 0
         aum_busd = round(aum_raw / 1e9, 2)
-        
+
         # Rendimiento por dividendo
         raw_yield = (
-            info.get('yield') or 
-            info.get('trailingAnnualDividendYield') or 
-            info.get('dividendYield') or 
+            info.get('yield') or
+            info.get('trailingAnnualDividendYield') or
+            info.get('dividendYield') or
             0
         )
         dividend_yield = raw_yield * 100 if raw_yield < 1 else raw_yield
-        
+
         return {
             'Familia': info.get('fundFamily', 'N/A'),
             'Expense_Ratio_%': round(ter_pct, 4),
@@ -51,7 +52,7 @@ def get_etf_fundamentals(stock):
         }
     except Exception:
         return {'Familia': 'N/A', 'Expense_Ratio_%': 0, 'AUM_BUSD': 0, 'Yield_%': 0, 'Categoria': 'N/A'}
-    
+
 def calculate_etf_performance(ticker_symbol, period="5y", rf=0.04):
     """
     Calcula las métricas de rendimiento histórico y riesgo:
@@ -73,31 +74,31 @@ def calculate_etf_performance_from_prices(prices, rf=0.04):
     try:
         if isinstance(prices, pd.DataFrame):
             prices = prices.squeeze()
-            
+
         prices = prices.dropna()
         returns = prices.pct_change().dropna()
-        
+
         # 1. Retorno Anualizado Compuesto (CAGR)
         years = (prices.index[-1] - prices.index[0]).days / 365.25
         cagr = ((prices.iloc[-1] / prices.iloc[0]) ** (1 / years) - 1) * 100 if years > 0 else 0
-        
+
         # 2. Volatilidad Anualizada
         vol_anual = returns.std() * np.sqrt(252) * 100
-        
+
         # 3. Sharpe Ratio: (Retorno Anual - Tasa Libre Riesgo) / Volatilidad
         excess_returns = (returns.mean() * 252) - rf
         sharpe = excess_returns / (vol_anual / 100) if vol_anual > 0 else 0
-        
+
         # 4. Sortino Ratio (mide volatilidad solo en días bajistas)
         downside_returns = returns[returns < 0]
         vol_bajista = downside_returns.std() * np.sqrt(252) * 100
         sortino = excess_returns / (vol_bajista / 100) if vol_bajista > 0 else 0
-        
+
         # 5. Max Drawdown
         picos = prices.cummax()
         drawdowns = (prices - picos) / picos
         max_dd = abs(drawdowns.min()) * 100
-        
+
         return {
             'CAGR_%': round(cagr, 2),
             'Volatilidad_%': round(vol_anual, 2),
@@ -119,14 +120,14 @@ def calculate_tracking_metrics(etf_ticker, benchmark_ticker="^GSPC", period="3y"
         data = yf.download([etf_ticker, benchmark_ticker], period=period, progress=False, auto_adjust=True)['Close']
         data = data.dropna()
         returns = data.pct_change().dropna()
-        
+
         # Diferencia diaria de retornos
         diff = returns[etf_ticker] - returns[benchmark_ticker]
-        
+
         # Tracking Error Anualizado
         tracking_error = diff.std() * np.sqrt(252) * 100
         correlacion = returns[etf_ticker].corr(returns[benchmark_ticker])
-        
+
         return {
             'Tracking_Error_%': round(tracking_error, 2),
             'Correlacion_BM': round(correlacion, 2)

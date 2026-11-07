@@ -1,0 +1,23 @@
+# Configuración de las herramientas de desarrollo (no es un paquete instalable).
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["componentes"]
+
+[tool.ruff.lint]
+# E/W: estilo PEP 8 · F: errores (nombres indefinidos, imports sin usar) · I: orden de imports
+# B: bugs frecuentes · UP: sintaxis moderna de Python
+select = ["E", "W", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# El CSS es más legible con una regla por línea
+"dashboard/estilos.py" = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["finanzas", "dashboard", "scripts", "tests"]

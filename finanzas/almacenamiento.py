@@ -28,7 +28,6 @@ import os
 from pathlib import Path
 
 import pandas as pd
-
 import streamlit as st
 from sqlalchemy import bindparam, text
 
@@ -129,7 +128,7 @@ def _conexion():
 def _cargar_json(defecto):
     if os.path.exists(ARCH_TICKERS):
         try:
-            with open(ARCH_TICKERS, 'r', encoding='utf-8') as f:
+            with open(ARCH_TICKERS, encoding='utf-8') as f:
                 return json.load(f)
         except Exception:
             pass
@@ -226,7 +225,7 @@ def cargar_metadatos():
     """metadata_cache.json + lo guardado en la base (la base tiene prioridad)."""
     datos = {clave: {} for clave in TIPOS}
     try:
-        with open(ARCH_METADATOS, 'r', encoding='utf-8') as f:
+        with open(ARCH_METADATOS, encoding='utf-8') as f:
             archivo = json.load(f)
         for clave in TIPOS:
             datos[clave].update(archivo.get(clave, {}))

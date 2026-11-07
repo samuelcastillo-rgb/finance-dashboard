@@ -159,7 +159,8 @@ def obtener_metrica_accion(symbol, metadatos):
 
         # Columnas informativas (no entran al score): si Yahoo no trae la fila, "sin dato" (None)
         try:
-            clave_eq = next((k for k in ['Stockholders Equity', 'Total Equity Gross Minority Interest', 'Common Stock Equity'] if k in bs.index), None)
+            claves_equity = ['Stockholders Equity', 'Total Equity Gross Minority Interest', 'Common Stock Equity']
+            clave_eq = next((k for k in claves_equity if k in bs.index), None)
             cagr_equity = sr.calcular_cagr_serie(bs.loc[clave_eq]) if clave_eq is not None else None
         except Exception:
             cagr_equity = None
@@ -193,8 +194,8 @@ def obtener_metrica_accion(symbol, metadatos):
             'CAGR_EBITDA_%': cagr_ebitda
         }
 
-        if 'Empresa' in fund: del fund['Empresa']
-        if 'Sector' in fund: del fund['Sector']
+        fund.pop('Empresa', None)
+        fund.pop('Sector', None)
 
         reg.update(fund)
 

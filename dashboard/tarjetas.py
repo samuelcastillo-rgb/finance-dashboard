@@ -57,7 +57,7 @@ def tarjeta_kpi(titulo, valor, sub=""):
 
 def mostrar_kpis(items):
     columnas = st.columns(len(items))
-    for col, (titulo, valor, sub) in zip(columnas, items):
+    for col, (titulo, valor, sub) in zip(columnas, items, strict=True):
         col.markdown(tarjeta_kpi(titulo, valor, sub), unsafe_allow_html=True)
 
 

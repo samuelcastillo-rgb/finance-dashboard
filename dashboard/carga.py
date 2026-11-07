@@ -114,7 +114,8 @@ def cargar_datos_etfs(universo_tuple, precios):
     # Registros del proceso diario; solo los ETFs que falten se consultan en vivo a Yahoo
     guardados = cargar_metricas_guardadas()[0].get('etf_list', {})
     faltan = [s for s in universo_tuple if s not in guardados]
-    en_vivo = dict(zip(faltan, obtener_en_paralelo(obtener_metrica_etf_individual, faltan, "Cargando ETFs")))
+    en_vivo_lista = obtener_en_paralelo(obtener_metrica_etf_individual, faltan, "Cargando ETFs")
+    en_vivo = dict(zip(faltan, en_vivo_lista, strict=True))
 
     resultados = []
     for symbol in universo_tuple:
@@ -142,7 +143,8 @@ def cargar_datos_acciones(universo_tuple, precios):
     # Registros del proceso diario; solo las acciones que falten se consultan en vivo a Yahoo
     guardados = cargar_metricas_guardadas()[0].get('stock_list', {})
     faltan = [s for s in universo_tuple if s not in guardados]
-    en_vivo = dict(zip(faltan, obtener_en_paralelo(obtener_metrica_individual, faltan, "Cargando acciones")))
+    en_vivo_lista = obtener_en_paralelo(obtener_metrica_individual, faltan, "Cargando acciones")
+    en_vivo = dict(zip(faltan, en_vivo_lista, strict=True))
 
     resultados = []
     for symbol in universo_tuple:

@@ -11,14 +11,15 @@
 
 - Dependencies are pinned in `requirements.txt` (Streamlit, pandas, numpy, plotly, yfinance, SQLAlchemy, psycopg).
 - Run the app with `streamlit run app.py` from the repository root.
-- Scripts in `scripts/` and tests in `tests/` are run as modules from the root: `python -m scripts.actualizar_datos`, `python -m tests.test_datos_faltantes`.
+- Scripts in `scripts/` are run as modules from the root: `python -m scripts.actualizar_datos`.
+- Dev tools: `pip install -r requirements-dev.txt`, then `pytest` and `ruff check .` (config in `pyproject.toml`). CI runs both on every PR (`.github/workflows/pruebas.yml`).
 - Calculation modules in `finanzas/` (`etf_ratios.py`, `stock_ratios.py`, `score.py`, `portafolio.py`, `datos_mercado.py`) expose functions only; do not add top-level network calls or execution side effects.
 - Local data files live in `datos/`; reference them through `finanzas.almacenamiento.CARPETA_DATOS`, never with cwd-relative paths.
 
 ## Coding Conventions
 
 - Follow the existing `snake_case` style and keep public function names unless a rename is requested.
-- Missing financial data must be `None`/NaN ("sin dato"), never 0. Run `python -m tests.test_datos_faltantes` after changing ratio calculations.
+- Missing financial data must be `None`/NaN ("sin dato"), never 0. Run `pytest` after changing ratio, score or portfolio calculations, and add a test for new behavior.
 - Do not commit `__pycache__`, `node_modules`, `venv` or `.streamlit/secrets.toml`.
 
 ## Presentation

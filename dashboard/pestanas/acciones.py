@@ -3,12 +3,26 @@ import streamlit as st
 
 from dashboard.config import COLUMNAS_EXPLORADOR_ACCIONES, NOTA_REESCALADO
 from dashboard.explorador import explorador_metricas
-from dashboard.graficos import (generar_grafico_tendencia_6m, grafico_contribuciones, grafico_correlacion,
-                                grafico_dispersion, grafico_ranking)
-from dashboard.tarjetas import (fila_extrema, marca_cobertura, mostrar_aviso_cobertura, mostrar_explicacion_score,
-                                mostrar_inspector, mostrar_kpis, mostrar_tabla, nota_omitidos, tarjeta_lider,
-                                titulo_seccion)
 from dashboard.formato import _f
+from dashboard.graficos import (
+    generar_grafico_tendencia_6m,
+    grafico_contribuciones,
+    grafico_correlacion,
+    grafico_dispersion,
+    grafico_ranking,
+)
+from dashboard.tarjetas import (
+    fila_extrema,
+    marca_cobertura,
+    mostrar_aviso_cobertura,
+    mostrar_explicacion_score,
+    mostrar_inspector,
+    mostrar_kpis,
+    mostrar_tabla,
+    nota_omitidos,
+    tarjeta_lider,
+    titulo_seccion,
+)
 from finanzas.score import COMPONENTES_ACCIONES, nivel_score
 
 
@@ -49,7 +63,8 @@ def mostrar(df_stocks, n_stocks_universo, filtros, precios_cierre):
             izq, der = st.columns([2.2, 1])
             with izq:
                 with st.container(border=True):
-                    titulo_seccion("Ranking por score", f"Top {min(top_n, len(df_stocks))} acciones · color = nivel del score")
+                    titulo_seccion("Ranking por score",
+                                   f"Top {min(top_n, len(df_stocks))} acciones · color = nivel del score")
                     st.plotly_chart(grafico_ranking(df_stocks, top_n), width='stretch', key='rank_stk')
                 with st.container(border=True):
                     titulo_seccion("Calidad de capital: ROIC vs. Sortino",
@@ -86,8 +101,9 @@ def mostrar(df_stocks, n_stocks_universo, filtros, precios_cierre):
             tickers_top_stk = df_stocks.head(top_n)['Ticker'].tolist()
             with st.container(border=True):
                 fig_6m_stk = generar_grafico_tendencia_6m(
-                    precios_cierre, tickers_top_stk, f"Rendimiento acumulado, 6 meses · Top {len(tickers_top_stk)} por score"
-                                     + ("" if sector_sel == "Todos" else f" · {sector_sel}"))
+                    precios_cierre, tickers_top_stk,
+                    f"Rendimiento acumulado, 6 meses · Top {len(tickers_top_stk)} por score"
+                    + ("" if sector_sel == "Todos" else f" · {sector_sel}"))
                 if fig_6m_stk:
                     st.plotly_chart(fig_6m_stk, width='stretch', key='trend_stk')
                 else:

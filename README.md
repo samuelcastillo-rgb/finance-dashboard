@@ -29,7 +29,7 @@ App publicada: https://finance-dashboard-sam.streamlit.app
 ├── componentes/explorador/   Código TypeScript del explorador (src/ y dist/ compilado)
 ├── scripts/                  Procesos que se corren a mano o desde GitHub Actions
 ├── datos/                    Respaldo local: lista de tickers y metadatos
-├── tests/                    Pruebas sin red
+├── tests/                    Pruebas sin red (pytest)
 ├── .streamlit/config.toml    Tema claro/oscuro (secrets.toml NO se sube)
 └── .github/workflows/        Actualización diaria de datos
 ```
@@ -58,4 +58,16 @@ Se ejecutan **desde la carpeta raíz del proyecto** con `python -m` para que enc
 | `python -m scripts.actualizar_datos` | Proceso diario: precios y métricas a la base (lo corre la GitHub Action) |
 | `python -m scripts.actualizar_metadatos` | Regenera `datos/metadata_cache.json` (nombre, categoría, sector) |
 | `python -m scripts.sp500_extraction` | Lista de mayores alzas y bajas del S&P 500 contra su media de 50 días |
-| `python -m tests.test_datos_faltantes` | Prueba que los datos faltantes salgan como "sin dato" y no como 0 |
+
+## Desarrollo
+
+```bash
+pip install -r requirements-dev.txt   # agrega pytest y ruff
+pytest                                # corre todas las pruebas de tests/
+ruff check .                          # revisa errores y estilo
+ruff check . --fix                    # corrige lo que se pueda automáticamente
+```
+
+La Action **Pruebas** (`.github/workflows/pruebas.yml`) corre ruff, pytest y la revisión de
+TypeScript en cada PR: si algo falla, el PR muestra una ✗ roja antes de fusionarlo.
+La configuración de pytest y ruff está en `pyproject.toml`.
