@@ -23,6 +23,7 @@ import stock_ratios as sr
 import almacenamiento
 import datos_mercado as dm
 import portafolio as pf
+from explorador import explorador_metricas
 
 
 # Respaldo de metadatos (nombre, categoría, sector) para cuando Yahoo bloquea `info`:
@@ -48,6 +49,28 @@ ESCALA_SCORE = [PALETA['riesgo'], PALETA['alerta'], PALETA['primario']]
 ESCALA_CORR = [PALETA['riesgo'], '#F8FAFC', PALETA['primario']]
 COLORES_COMPONENTES = ['#6366F1', '#1dbe83', '#38BDF8', '#F59E0B',
                        '#A78BFA', '#F472B6', '#94A3B8', '#FB923C']
+
+# Columnas que el explorador (componente TypeScript) ofrece en sus selectores:
+# (columna, etiqueta, tipo 'num'/'cat', sufijo, decimales)
+COLUMNAS_EXPLORADOR_ETFS = [
+    ('Ticker', 'Ticker', 'cat', '', 0), ('Category', 'Categoría', 'cat', '', 0),
+    ('Score_Final', 'Score', 'num', '', 1), ('52W_Change_%', 'Cambio 52 sem.', 'num', '%', 2),
+    ('CAGR_%', 'CAGR', 'num', '%', 2), ('Volatilidad_%', 'Volatilidad', 'num', '%', 2),
+    ('Max_Drawdown_%', 'Caída máxima', 'num', '%', 1), ('Sortino', 'Sortino', 'num', '', 2),
+    ('Sharpe', 'Sharpe', 'num', '', 2), ('Expense_Ratio_%', 'TER', 'num', '%', 2),
+    ('Yield_%', 'Rendimiento por dividendo', 'num', '%', 2), ('AUM_BUSD', 'AUM (miles de MDD)', 'num', '', 2),
+    ('Cobertura_%', 'Cobertura de datos', 'num', '%', 0),
+]
+COLUMNAS_EXPLORADOR_ACCIONES = [
+    ('Ticker', 'Ticker', 'cat', '', 0), ('Sector', 'Sector', 'cat', '', 0),
+    ('Score_Final', 'Score', 'num', '', 1), ('52W_Change_%', 'Cambio 52 sem.', 'num', '%', 2),
+    ('CAGR_%', 'CAGR ingresos', 'num', '%', 2), ('CAGR_Equity_%', 'CAGR capital', 'num', '%', 2),
+    ('CAGR_FCF_%', 'CAGR flujo libre', 'num', '%', 2), ('CAGR_EBITDA_%', 'CAGR EBITDA', 'num', '%', 2),
+    ('ROIC_%', 'ROIC', 'num', '%', 2), ('ROE_%', 'ROE', 'num', '%', 2), ('ROA_%', 'ROA', 'num', '%', 2),
+    ('Net_Margin_%', 'Margen neto', 'num', '%', 2), ('Debt_to_Equity', 'Deuda/Capital', 'num', '', 2),
+    ('Sortino', 'Sortino', 'num', '', 2), ('EBITDA_MUSD', 'EBITDA (MDD)', 'num', '', 0),
+    ('Cobertura_%', 'Cobertura de datos', 'num', '%', 0),
+]
 
 # (umbral mínimo, nombre, clase CSS). El orden importa: de mayor a menor.
 NIVELES_SCORE = [(80, 'Excelente', 'excelente'), (60, 'Bueno', 'bueno'),
@@ -971,8 +994,8 @@ with tab_etf:
         mostrar_kpis(kpis_etf)
         st.write("")
 
-        sub_res, sub_score, sub_mercado, sub_datos = st.tabs(
-            ["Resumen", "Desglose del score", "Mercado", "Datos"])
+        sub_res, sub_score, sub_mercado, sub_explorar, sub_datos = st.tabs(
+            ["Resumen", "Desglose del score", "Mercado", "Explorador", "Datos"])
 
         with sub_res:
             izq, der = st.columns([2.2, 1])
@@ -1030,6 +1053,14 @@ with tab_etf:
                 else:
                     st.info("Se necesitan al menos 2 ETFs para calcular la correlación.")
 
+        with sub_explorar:
+            with st.container(border=True):
+                titulo_seccion("Explorador de métricas",
+                               "Elige la gráfica y qué comparar en cada eje · respeta los filtros del menú lateral")
+                explorador_metricas(df_etfs, COLUMNAS_EXPLORADOR_ETFS, nombre_col='Nombre', key='explorador_etf',
+                                    inicial={'tipo': 'dispersion', 'x': 'Volatilidad_%', 'y': 'CAGR_%',
+                                             'color': 'Score_Final', 'tamano': 'AUM_BUSD'})
+
         with sub_datos:
             mostrar_tabla(
                 df_etfs,
@@ -1071,8 +1102,8 @@ with tab_stock:
         mostrar_kpis(kpis_stk)
         st.write("")
 
-        s_res, s_score, s_mercado, s_datos = st.tabs(
-            ["Resumen", "Desglose del score", "Mercado", "Datos"])
+        s_res, s_score, s_mercado, s_explorar, s_datos = st.tabs(
+            ["Resumen", "Desglose del score", "Mercado", "Explorador", "Datos"])
 
         with s_res:
             izq, der = st.columns([2.2, 1])
@@ -1129,6 +1160,14 @@ with tab_stock:
                     st.plotly_chart(fig_cs, width='stretch', key='corr_stk')
                 else:
                     st.info("Se necesitan al menos 2 acciones para calcular la correlación.")
+
+        with s_explorar:
+            with st.container(border=True):
+                titulo_seccion("Explorador de métricas",
+                               "Elige la gráfica y qué comparar en cada eje · respeta los filtros del menú lateral")
+                explorador_metricas(df_stocks, COLUMNAS_EXPLORADOR_ACCIONES, nombre_col='Empresa', key='explorador_stk',
+                                    inicial={'tipo': 'dispersion', 'x': 'Debt_to_Equity', 'y': 'ROIC_%',
+                                             'color': 'Sector', 'tamano': 'EBITDA_MUSD'})
 
         with s_datos:
             mostrar_tabla(
