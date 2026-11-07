@@ -7,8 +7,12 @@ import streamlit as st
 st.set_page_config(page_title="Finance Quantitative Dashboard", layout="wide", initial_sidebar_state="expanded")
 
 from dashboard import barra_lateral  # noqa: E402  (después de set_page_config)
-from dashboard.carga import (cargar_datos_acciones, cargar_datos_etfs, cargar_metricas_guardadas,  # noqa: E402
-                             descargar_precios_cierre)
+from dashboard.carga import (  # noqa: E402
+    cargar_datos_acciones,
+    cargar_datos_etfs,
+    cargar_metricas_guardadas,
+    descargar_precios_cierre,
+)
 from dashboard.estilos import aplicar_estilos  # noqa: E402
 from dashboard.pestanas import acciones, etfs, portafolio  # noqa: E402
 from dashboard.tarjetas import encabezado  # noqa: E402

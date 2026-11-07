@@ -3,12 +3,26 @@ import streamlit as st
 
 from dashboard.config import COLUMNAS_EXPLORADOR_ETFS, NOTA_REESCALADO
 from dashboard.explorador import explorador_metricas
-from dashboard.graficos import (generar_grafico_tendencia_6m, grafico_contribuciones, grafico_correlacion,
-                                grafico_dispersion, grafico_ranking)
-from dashboard.tarjetas import (fila_extrema, marca_cobertura, mostrar_aviso_cobertura, mostrar_explicacion_score,
-                                mostrar_inspector, mostrar_kpis, mostrar_tabla, nota_omitidos, tarjeta_lider,
-                                titulo_seccion)
 from dashboard.formato import _f
+from dashboard.graficos import (
+    generar_grafico_tendencia_6m,
+    grafico_contribuciones,
+    grafico_correlacion,
+    grafico_dispersion,
+    grafico_ranking,
+)
+from dashboard.tarjetas import (
+    fila_extrema,
+    marca_cobertura,
+    mostrar_aviso_cobertura,
+    mostrar_explicacion_score,
+    mostrar_inspector,
+    mostrar_kpis,
+    mostrar_tabla,
+    nota_omitidos,
+    tarjeta_lider,
+    titulo_seccion,
+)
 from finanzas.score import COMPONENTES_ETFS, nivel_score
 
 
@@ -52,7 +66,8 @@ def mostrar(df_etfs, n_etfs_universo, filtros, precios_cierre):
             izq, der = st.columns([2.2, 1])
             with izq:
                 with st.container(border=True):
-                    titulo_seccion("Ranking por score", f"Top {min(top_n, len(df_etfs))} ETFs · color = nivel del score")
+                    titulo_seccion("Ranking por score",
+                                   f"Top {min(top_n, len(df_etfs))} ETFs · color = nivel del score")
                     st.plotly_chart(grafico_ranking(df_etfs, top_n), width='stretch', key='rank_etf')
                 if 'Volatilidad_%' in df_etfs.columns and 'CAGR_%' in df_etfs.columns:
                     with st.container(border=True):
@@ -69,7 +84,8 @@ def mostrar(df_etfs, n_etfs_universo, filtros, precios_cierre):
                 with st.container(height=700, border=False):
                     for _, r in df_etfs.groupby('Category').head(1).head(12).iterrows():
                         st.markdown(tarjeta_lider(
-                            r["Ticker"], f'{r["Category"]} · TER {_f(r["Expense_Ratio_%"], 2, "%")}{marca_cobertura(r)}',
+                            r["Ticker"],
+                            f'{r["Category"]} · TER {_f(r["Expense_Ratio_%"], 2, "%")}{marca_cobertura(r)}',
                             r["Score_Final"]),
                             unsafe_allow_html=True)
 
@@ -117,7 +133,8 @@ def mostrar(df_etfs, n_etfs_universo, filtros, precios_cierre):
                 df_etfs,
                 ['Ticker', 'Nombre', 'Category', 'Score_Final', 'Cobertura_%', '52W_Change_%', 'Expense_Ratio_%',
                  'AUM_BUSD', 'Yield_%', 'Sortino', 'Sharpe', 'CAGR_%', 'Volatilidad_%', 'Max_Drawdown_%'],
-                {'Score_Final': '{:.1f}', 'Cobertura_%': '{:.0f}%', '52W_Change_%': '{:+.2f}%', 'Expense_Ratio_%': '{:.2f}%',
-                 'Yield_%': '{:.2f}%', 'Sortino': '{:.2f}', 'Sharpe': '{:.2f}', 'CAGR_%': '{:.2f}%',
+                {'Score_Final': '{:.1f}', 'Cobertura_%': '{:.0f}%', '52W_Change_%': '{:+.2f}%',
+                 'Expense_Ratio_%': '{:.2f}%', 'Yield_%': '{:.2f}%', 'Sortino': '{:.2f}', 'Sharpe': '{:.2f}',
+                 'CAGR_%': '{:.2f}%',
                  'Volatilidad_%': '{:.2f}%', 'Max_Drawdown_%': '{:.1f}%', 'AUM_BUSD': '${:,.2f}B'},
                 'etfs.csv')

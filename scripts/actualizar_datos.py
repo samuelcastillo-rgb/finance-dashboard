@@ -16,7 +16,7 @@
 
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pandas as pd
 import yfinance as yf
@@ -44,13 +44,13 @@ def actualizar_precios(tickers):
 
 def _en_paralelo(funcion, simbolos):
     with ThreadPoolExecutor(max_workers=dm.MAX_HILOS_YAHOO) as pool:
-        return dict(zip(simbolos, pool.map(funcion, simbolos)))
+        return dict(zip(simbolos, pool.map(funcion, simbolos), strict=True))
 
 
 def actualizar_metricas(etfs, acciones):
     """Calcula y guarda el registro de cada ticker. Devuelve (n_ok, n_total)."""
     metadatos = almacenamiento.cargar_metadatos()
-    ahora = datetime.now(timezone.utc).replace(tzinfo=None)  # se guarda en UTC
+    ahora = datetime.now(UTC).replace(tzinfo=None)  # se guarda en UTC
 
     print(f"Calculando métricas de {len(etfs)} ETFs...")
     reg_etfs = _en_paralelo(lambda s: dm.obtener_metrica_etf(s, metadatos), etfs)

@@ -1,5 +1,6 @@
 import json
 import time
+
 import yfinance as yf
 
 from finanzas import almacenamiento
@@ -63,7 +64,7 @@ def actualizar_metadatos(escribir_json=True):
     if escribir_json:
         # Se combina con el archivo existente: los tickers que fallaron conservan su dato anterior
         try:
-            with open(ARCH_METADATOS, "r", encoding="utf-8") as f:
+            with open(ARCH_METADATOS, encoding="utf-8") as f:
                 anterior = json.load(f)
         except Exception:
             anterior = {}

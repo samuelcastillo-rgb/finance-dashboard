@@ -1,7 +1,8 @@
 # finanzas/stock_ratios.py
-import yfinance as yf
-import pandas as pd
 import numpy as np
+import pandas as pd
+import yfinance as yf
+
 
 def _numero(valor):
     """Convierte a float. Devuelve None si el dato falta (None, NaN o no numérico):
@@ -181,21 +182,21 @@ def calcular_cagr_serie(serie):
     try:
         if serie is None or serie.empty:
             return 0.0
-            
+
         # BLINDAJE: Si yfinance entrega un DataFrame por filas duplicadas, tomamos solo la primera
         if isinstance(serie, pd.DataFrame):
             serie = serie.iloc[0]
-            
+
         s = serie.dropna()
         if len(s) < 2:
             return 0.0
-            
+
         # Ordenar cronológicamente
         s = s.sort_index(ascending=True)
         val_inicial = float(s.iloc[0])
         val_final = float(s.iloc[-1])
         n_anios = len(s) - 1
-        
+
         if val_inicial > 0 and val_final > 0 and n_anios > 0:
             cagr = ((val_final / val_inicial) ** (1 / n_anios) - 1) * 100
             return round(cagr, 2)
