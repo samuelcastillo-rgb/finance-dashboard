@@ -3,4 +3,5 @@ __pycache__/
 .vscode/
 *.pyc
 Documentos/
-.streamlit/secrets.toml*.patch
+.streamlit/secrets.toml
+*.patch
