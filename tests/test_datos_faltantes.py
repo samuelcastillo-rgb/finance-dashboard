@@ -31,6 +31,13 @@ def estado(filas):
     return pd.DataFrame({pd.Timestamp('2025-12-31'): list(filas.values())}, index=list(filas.keys()))
 
 
+def estado_dos_anios(filas):
+    """{'Fila': (año actual, año anterior)} -> DataFrame con el año más reciente primero."""
+    return pd.DataFrame({pd.Timestamp('2025-12-31'): [v[0] for v in filas.values()],
+                         pd.Timestamp('2024-12-31'): [v[1] for v in filas.values()]},
+                        index=list(filas.keys()))
+
+
 def comprobar(nombre, obtenido, esperado):
     assert obtenido == esperado, f'{nombre}: esperado {esperado!r}, obtenido {obtenido!r}'
 
@@ -115,9 +122,70 @@ def test_info_bloqueada_con_estados_financieros():
                            'Net Income': 790, 'Total Revenue': 4000, 'EBITDA': 1500e6}),
         balance_sheet=estado({'Total Debt': 500, 'Stockholders Equity': 2000,
                               'Cash And Cash Equivalents': 300, 'Total Assets': 7900})))
-    comprobar('ROIC_%', r['ROIC_%'], 35.91)
+    # Con ventas de 4000 solo se resta el efectivo excedente: 300 - 2 % · 4000 = 220
+    # capital = (500 + 2000) - 220 = 2280 ; ROIC = 790 / 2280 = 34.65 %
+    comprobar('ROIC_%', r['ROIC_%'], 34.65)
     comprobar('ROA_% (790 / 7900)', r['ROA_%'], 10.0)
     comprobar('ROE_% (790 / 2000)', r['ROE_%'], 39.5)
     comprobar('Net_Margin_% (790 / 4000)', r['Net_Margin_%'], 19.75)
     comprobar('Debt_to_Equity (500 / 2000)', r['Debt_to_Equity'], 0.25)
     comprobar('EBITDA_MUSD', r['EBITDA_MUSD'], 1500.0)
+
+
+# --- ROIC ---------------------------------------------------------------------
+def roic(financials, balance_sheet):
+    return sr.get_stock_fundamentals(FalsaAccion({}, financials=financials, balance_sheet=balance_sheet))['ROIC_%']
+
+
+def test_roic_con_capital_promedio():
+    """El capital invertido es el promedio del cierre de este año y del anterior"""
+    r = roic(estado({'EBIT': 1000, 'Tax Provision': 210, 'Pretax Income': 1000}),
+             estado_dos_anios({'Total Debt': (500, 300), 'Stockholders Equity': (2000, 1700),
+                               'Cash And Cash Equivalents': (300, 200)}))
+    # capital: 2200 (este año) y 1800 (anterior) -> promedio 2000 ; ROIC = 790 / 2000 = 39.5 %
+    comprobar('ROIC_%', r, 39.5)
+
+
+def test_roic_capital_anterior_no_valido_usa_el_actual():
+    r = roic(estado({'EBIT': 1000, 'Tax Provision': 210, 'Pretax Income': 1000}),
+             estado_dos_anios({'Total Debt': (500, 0), 'Stockholders Equity': (2000, -100),
+                               'Cash And Cash Equivalents': (300, 50)}))
+    comprobar('ROIC_% (solo capital actual)', r, 35.91)
+
+
+def test_roic_tasa_de_impuestos():
+    """Tasa efectiva acotada a 35 %; si no es positiva se usa 21 %"""
+    balance = estado({'Stockholders Equity': 1000})
+    comprobar('tasa de 60 % -> 35 %', roic(
+        estado({'EBIT': 100, 'Tax Provision': 60, 'Pretax Income': 100}), balance), 6.5)
+    comprobar('impuesto negativo -> 21 %', roic(
+        estado({'EBIT': 100, 'Tax Provision': -5, 'Pretax Income': 100}), balance), 7.9)
+    comprobar('pérdida antes de impuestos -> 21 %', roic(
+        estado({'EBIT': 100, 'Tax Provision': 10, 'Pretax Income': -50}), balance), 7.9)
+    comprobar('sin datos de impuestos -> 21 %', roic(estado({'EBIT': 100}), balance), 7.9)
+
+
+def test_roic_efectivo_excedente():
+    """Solo se resta el efectivo que supera el 2 % de las ventas"""
+    fin = estado({'EBIT': 1000, 'Tax Provision': 210, 'Pretax Income': 1000, 'Total Revenue': 50000})
+    # efectivo operativo = 1000 >= 300: no hay excedente ; capital = 2500 ; ROIC = 31.6 %
+    comprobar('sin excedente', roic(fin, estado({'Total Debt': 500, 'Stockholders Equity': 2000,
+                                                  'Cash And Cash Equivalents': 300})), 31.6)
+
+
+def test_roic_deuda_por_partes_y_sin_deuda():
+    fin = estado({'EBIT': 1000, 'Tax Provision': 210, 'Pretax Income': 1000})
+    comprobar('deuda = largo + corto plazo', roic(fin, estado({
+        'Long Term Debt': 400, 'Current Debt': 100, 'Stockholders Equity': 2000,
+        'Cash And Cash Equivalents': 300})), 35.91)
+    comprobar('sin filas de deuda', roic(fin, estado({'Stockholders Equity': 2000})), 39.5)
+
+
+def test_roic_sin_respaldo_con_roa():
+    """Si el cálculo falla, el ROIC queda sin dato: ya no se sustituye por el ROA"""
+    accion = FalsaAccion({'returnOnAssets': 0.10}, financials=estado({'EBIT': 1000}),
+                         balance_sheet=estado({'Stockholders Equity': 2000}))
+    with patch.object(sr, '_calcular_roic', side_effect=ZeroDivisionError):
+        r = sr.get_stock_fundamentals(accion)
+    comprobar('ROIC_%', r['ROIC_%'], None)
+    comprobar('ROA_%', r['ROA_%'], 10.0)
