@@ -15,7 +15,8 @@ App publicada: https://finance-dashboard-sam.streamlit.app
 │   ├── stock_ratios.py       Métricas fundamentales de acciones
 │   ├── datos_mercado.py      Consultas a Yahoo Finance (app y scripts)
 │   ├── almacenamiento.py     Postgres (Neon) o respaldo en datos/*.json
-│   └── portafolio.py         Cálculos del portafolio personal
+│   ├── portafolio.py         Cálculos del portafolio personal
+│   └── montecarlo.py         Datos de entrada de la simulación Monte Carlo
 ├── dashboard/                Interfaz de Streamlit
 │   ├── config.py             Paleta, columnas del explorador, tickers por defecto
 │   ├── estilos.py            CSS global
@@ -25,8 +26,12 @@ App publicada: https://finance-dashboard-sam.streamlit.app
 │   ├── tarjetas.py           KPIs, tarjetas, tablas e inspector
 │   ├── formato.py            Formato de números
 │   ├── explorador.py         Puente Python del explorador (TypeScript)
+│   ├── montecarlo.py         Puente Python de la simulación (Rust + TypeScript)
 │   └── pestanas/             etfs.py, acciones.py, portafolio.py
-├── componentes/explorador/   Código TypeScript del explorador (src/ y dist/ compilado)
+├── componentes/
+│   ├── explorador/           Explorador de métricas en TypeScript (src/ y dist/ compilado)
+│   └── montecarlo/           Simulación Monte Carlo: motor en Rust (rust/) → WebAssembly,
+│                             interfaz en TypeScript (src/) y dist/ compilado
 ├── scripts/                  Procesos que se corren a mano o desde GitHub Actions
 ├── datos/                    Respaldo local: lista de tickers y metadatos
 ├── tests/                    Pruebas sin red (pytest)
@@ -68,6 +73,10 @@ ruff check .                          # revisa errores y estilo
 ruff check . --fix                    # corrige lo que se pueda automáticamente
 ```
 
-La Action **Pruebas** (`.github/workflows/pruebas.yml`) corre ruff, pytest y la revisión de
-TypeScript en cada PR: si algo falla, el PR muestra una ✗ roja antes de fusionarlo.
+Los componentes en TypeScript y Rust tienen su propio README en `componentes/*/README.md`
+(se compilan con `npm run build`; `dist/` se sube al repositorio para que Streamlit Cloud
+no necesite Node ni Rust).
+
+La Action **Pruebas** (`.github/workflows/pruebas.yml`) corre ruff, pytest, la revisión de
+TypeScript y las pruebas de Rust (`cargo test`, clippy) en cada PR: si algo falla, el PR muestra una ✗ roja antes de fusionarlo.
 La configuración de pytest y ruff está en `pyproject.toml`.

@@ -56,3 +56,45 @@ jobs:
             echo "::error::dist/ no coincide con src/. Corre 'npm run build' en componentes/explorador y sube dist/."
             exit 1
           }
+
+  montecarlo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: componentes/montecarlo
+    steps:
+      - uses: actions/checkout@v5
+
+      # La misma versión que fija rust-toolchain.toml, para que el .wasm salga idéntico.
+      - name: Instalar Rust
+        run: rustup toolchain install 1.97.0 --profile minimal --target wasm32-unknown-unknown --component clippy,rustfmt
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: componentes/montecarlo/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Formato y lint de Rust (rustfmt, clippy)
+        working-directory: componentes/montecarlo/rust
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+
+      - name: Pruebas de Rust (cargo test)
+        run: npm test
+
+      - name: Revisar tipos (TypeScript)
+        run: npm run typecheck
+
+      - name: Comprobar que dist/ está compilado
+        run: |
+          npm run build
+          git diff --exit-code -- dist/ || {
+            echo "::error::dist/ no coincide con el código. Corre 'npm run build' en componentes/montecarlo y sube dist/."
+            exit 1
+          }

@@ -1,0 +1,21 @@
+[package]
+name = "montecarlo"
+version = "1.0.0"
+edition = "2024"
+description = "Simulación Monte Carlo del portafolio, compilada a WebAssembly para el dashboard."
+publish = false
+
+[lib]
+# cdylib -> montecarlo.wasm para el navegador; rlib -> para `cargo test`.
+crate-type = ["cdylib", "rlib"]
+
+# Sin dependencias externas: el generador aleatorio, Cholesky y los percentiles
+# están escritos a mano, así el .wasm pesa pocos KB y la compilación es reproducible.
+[dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
