@@ -13,7 +13,7 @@
 - Run the app with `streamlit run app.py` from the repository root.
 - Scripts in `scripts/` are run as modules from the root: `python -m scripts.actualizar_datos`.
 - Dev tools: `pip install -r requirements-dev.txt`, then `pytest` and `ruff check .` (config in `pyproject.toml`). CI runs both on every PR (`.github/workflows/pruebas.yml`).
-- Calculation modules in `finanzas/` (`etf_ratios.py`, `stock_ratios.py`, `score.py`, `portafolio.py`, `montecarlo.py`, `frontera.py`, `datos_mercado.py`) expose functions only; do not add top-level network calls or execution side effects.
+- Calculation modules in `finanzas/` (`etf_ratios.py`, `stock_ratios.py`, `score.py`, `portafolio.py`, `montecarlo.py`, `frontera.py`, `comparar.py`, `datos_mercado.py`) expose functions only; do not add top-level network calls or execution side effects.
 - Local data files live in `datos/`; reference them through `finanzas.almacenamiento.CARPETA_DATOS`, never with cwd-relative paths.
 
 ## Coding Conventions
