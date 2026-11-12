@@ -25,6 +25,12 @@ jobs:
       - name: Revisar estilo y errores (ruff)
         run: ruff check .
 
+      # Para que pytest también pruebe el optimizador en Rust de punta a punta.
+      - name: Compilar optimizador (Rust)
+        run: |
+          rustup toolchain install 1.97.0 --profile minimal
+          cd optimizador && cargo build --release
+
       - name: Pruebas (pytest)
         run: pytest
 
@@ -56,6 +62,26 @@ jobs:
             echo "::error::dist/ no coincide con src/. Corre 'npm run build' en componentes/explorador y sube dist/."
             exit 1
           }
+
+  optimizador:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: optimizador
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Instalar Rust
+        run: rustup toolchain install 1.97.0 --profile minimal --component clippy,rustfmt
+
+      - name: Formato y lint (rustfmt, clippy)
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+
+      - name: Pruebas (cargo test)
+        run: cargo test --release
 
   montecarlo:
     runs-on: ubuntu-latest

@@ -9,6 +9,9 @@
 #    ratios de estados financieros) con datos_mercado.py y lo guarda en la tabla
 #    metricas. Esto también actualiza los metadatos. Si Yahoo falla con un ticker,
 #    se conserva su registro anterior.
+# 4. Calcula la frontera eficiente de los ETFs y de las acciones con el optimizador en
+#    Rust (optimizador/, hay que compilarlo antes: cargo build --release) y la guarda en
+#    la tabla fronteras. Si el programa no está compilado o falla, solo avisa.
 #
 # La app lee todo esto de la base, así que no consulta a Yahoo en cada visita.
 #
@@ -21,7 +24,7 @@ from datetime import UTC, datetime
 import pandas as pd
 import yfinance as yf
 
-from finanzas import almacenamiento
+from finanzas import almacenamiento, frontera
 from finanzas import datos_mercado as dm
 
 PERIODO_PRECIOS = "5y"  # el mismo periodo que usa dashboard/carga.py
@@ -39,7 +42,7 @@ def actualizar_precios(tickers):
         print(f"  Sin precios para: {', '.join(sin_precios)}")
     filas = almacenamiento.guardar_precios(precios)
     print(f"Precios guardados: {len(precios.columns)} tickers, {filas} filas.")
-    return len(precios.columns)
+    return precios
 
 
 def _en_paralelo(funcion, simbolos):
@@ -71,6 +74,25 @@ def actualizar_metricas(etfs, acciones):
     return n_ok, n_total
 
 
+def actualizar_fronteras(precios, etfs, acciones):
+    """Frontera eficiente de cada lista con el optimizador en Rust. Nunca hace fallar el proceso."""
+    if not frontera.BINARIO.exists():
+        print(f"AVISO: no está compilado el optimizador ({frontera.BINARIO}); se omite la frontera eficiente.")
+        return
+    ahora = datetime.now(UTC).replace(tzinfo=None)
+    for clave, tickers, nombre in (('etf_list', etfs, 'ETFs'), ('stock_list', acciones, 'acciones')):
+        try:
+            resultado = frontera.calcular_frontera(precios, tickers)
+            almacenamiento.guardar_frontera(clave, resultado, ahora)
+        except Exception as e:
+            print(f"AVISO: no se pudo calcular o guardar la frontera de {nombre}: {e}")
+            continue
+        ms = resultado['max_sharpe']
+        print(f"Frontera de {nombre}: {len(resultado['activos'])} tickers, {len(resultado['frontera'])} puntos, "
+              f"máximo Sharpe {ms['sharpe']:.2f} con {len(ms['pesos'])} tickers"
+              + (f" ({len(resultado['excluidos'])} excluidos)" if resultado['excluidos'] else ""))
+
+
 def main():
     if not almacenamiento.hay_base_de_datos():
         print("ERROR: no hay base de datos configurada en .streamlit/secrets.toml")
@@ -85,11 +107,15 @@ def main():
         return 1
 
     # También los precios de los tickers del portafolio personal que no estén en las listas
-    con_precios = actualizar_precios(list(dict.fromkeys(tickers + almacenamiento.tickers_de_posiciones())))
+    precios = actualizar_precios(list(dict.fromkeys(tickers + almacenamiento.tickers_de_posiciones())))
+    con_precios = len(precios.columns)
 
     n_ok, n_total = actualizar_metricas(etfs, acciones)
     if n_ok == 0:
         print("AVISO: Yahoo no devolvió datos de ningún ticker. Se conservan los registros guardados.")
+
+    if con_precios > 0:
+        actualizar_fronteras(precios, etfs, acciones)
 
     # Falla el proceso (y GitHub te avisa por correo) solo si no se pudo bajar ningún precio
     return 0 if con_precios > 0 else 1

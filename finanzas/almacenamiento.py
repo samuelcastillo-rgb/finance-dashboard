@@ -22,6 +22,9 @@
 #
 # También guarda las compras del portafolio personal (tabla posiciones). Estas
 # solo se guardan en la base, nunca en un archivo del repositorio (que es público).
+#
+# Y la frontera eficiente de ETFs y de acciones (tabla fronteras) que calcula el
+# optimizador en Rust durante el proceso diario.
 
 import json
 import os
@@ -94,6 +97,14 @@ CREATE TABLE IF NOT EXISTS posiciones (
 )
 """
 
+SQL_CREAR_TABLA_FRONTERAS = """
+CREATE TABLE IF NOT EXISTS fronteras (
+    tipo        TEXT      NOT NULL PRIMARY KEY,
+    datos       TEXT      NOT NULL,
+    actualizado TIMESTAMP NOT NULL
+)
+"""
+
 SQL_GUARDAR_METADATO = """
 INSERT INTO metadatos (tipo, simbolo, datos) VALUES (:tipo, :simbolo, :datos)
 ON CONFLICT (tipo, simbolo) DO UPDATE SET datos = excluded.datos
@@ -118,6 +129,7 @@ def _conexion():
         s.execute(text(SQL_CREAR_TABLA_PRECIOS))
         s.execute(text(SQL_CREAR_TABLA_METRICAS))
         s.execute(text(SQL_CREAR_TABLA_POSICIONES))
+        s.execute(text(SQL_CREAR_TABLA_FRONTERAS))
         s.commit()
     return conn
 
@@ -366,6 +378,35 @@ def cargar_metricas():
             if actualizado is not None and (fecha is None or actualizado > fecha):
                 fecha = actualizado
     return datos, fecha
+
+
+# ------------------------------------------------------------------------------
+# Frontera eficiente (resultado del optimizador en Rust, uno por tipo de activo)
+# ------------------------------------------------------------------------------
+def guardar_frontera(clave, resultado, actualizado):
+    """Guarda el resultado de finanzas.frontera.calcular_frontera (clave = 'etf_list' o 'stock_list')."""
+    with _conexion().session as s:
+        s.execute(text(
+            'INSERT INTO fronteras (tipo, datos, actualizado) VALUES (:tipo, :datos, :actualizado) '
+            'ON CONFLICT (tipo) DO UPDATE SET datos = excluded.datos, actualizado = excluded.actualizado'
+        ), {'tipo': TIPOS[clave], 'datos': json.dumps(resultado, ensure_ascii=False, default=_a_json),
+            'actualizado': actualizado})
+        s.commit()
+
+
+def cargar_frontera(clave):
+    """(resultado, fecha) de la última frontera guardada, o (None, None) si no hay."""
+    if not hay_base_de_datos():
+        return None, None
+    try:
+        with _conexion().session as s:
+            fila = s.execute(text('SELECT datos, actualizado FROM fronteras WHERE tipo = :tipo'),
+                             {'tipo': TIPOS[clave]}).fetchone()
+    except Exception:
+        return None, None
+    if fila is None:
+        return None, None
+    return json.loads(fila[0]), fila[1]
 
 
 # ------------------------------------------------------------------------------

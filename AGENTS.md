@@ -13,7 +13,7 @@
 - Run the app with `streamlit run app.py` from the repository root.
 - Scripts in `scripts/` are run as modules from the root: `python -m scripts.actualizar_datos`.
 - Dev tools: `pip install -r requirements-dev.txt`, then `pytest` and `ruff check .` (config in `pyproject.toml`). CI runs both on every PR (`.github/workflows/pruebas.yml`).
-- Calculation modules in `finanzas/` (`etf_ratios.py`, `stock_ratios.py`, `score.py`, `portafolio.py`, `montecarlo.py`, `datos_mercado.py`) expose functions only; do not add top-level network calls or execution side effects.
+- Calculation modules in `finanzas/` (`etf_ratios.py`, `stock_ratios.py`, `score.py`, `portafolio.py`, `montecarlo.py`, `frontera.py`, `datos_mercado.py`) expose functions only; do not add top-level network calls or execution side effects.
 - Local data files live in `datos/`; reference them through `finanzas.almacenamiento.CARPETA_DATOS`, never with cwd-relative paths.
 
 ## Coding Conventions
@@ -28,3 +28,4 @@
 - Theme colors come from `.streamlit/config.toml` (light and dark). Avoid hardcoded text/background colors in CSS or Plotly figures so both modes stay readable.
 - The TypeScript explorer lives in `componentes/explorador/`; after editing `src/`, run `npm run build` and commit `dist/`.
 - The Monte Carlo simulation lives in `componentes/montecarlo/`: engine in Rust (`rust/src/lib.rs`, compiled to WebAssembly with the toolchain pinned in `rust-toolchain.toml`) and UI in TypeScript (`src/`). After editing either, run `npm test` and `npm run build` there and commit `dist/` (the `.wasm` is embedded in `dist/montecarlo.js`). Input data is prepared by `finanzas/montecarlo.py`.
+- The efficient frontier optimizer is a Rust binary in `optimizador/` (`cargo build --release` there; `cargo test`, `cargo clippy --all-targets -- -D warnings`, `cargo fmt --check`). The daily job runs it through `finanzas/frontera.py` and stores the result in the `fronteras` table; `dashboard/frontera.py` only reads it.

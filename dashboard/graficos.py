@@ -175,3 +175,71 @@ def grafico_ganancia_por_ticker(resumen):
         hovertemplate='%{y}<br>%{x:+,.2f} USD<br>%{customdata:+.2f}%<extra></extra>'))
     fig.update_layout(xaxis_title='Ganancia / pérdida (USD)', yaxis_title=None)
     return aplicar_estilo_grafico(fig, altura=max(240, 34 * len(datos) + 90))
+
+
+def grafico_frontera(resultado, elegida, nombres=None):
+    """Frontera eficiente (línea), cada activo (puntos), las carteras de mínima volatilidad y
+    máximo Sharpe, la línea del mercado de capitales y la cartera `elegida` resaltada.
+    `resultado` es lo que guarda el optimizador en Rust (finanzas/frontera.py)."""
+    nombres = nombres or {}
+    pct = 100
+    activos = pd.DataFrame(resultado['activos'])
+    frontera = pd.DataFrame(resultado['frontera'])
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=activos['volatilidad'] * pct, y=activos['rendimiento'] * pct, mode='markers', name='Cada activo',
+        marker=dict(size=7, color=PALETA['suave'], opacity=0.55),
+        customdata=[nombres.get(t, '') for t in activos['ticker']], text=activos['ticker'],
+        hovertemplate='<b>%{text}</b> %{customdata}<br>Volatilidad %{x:.1f}%<br>Rendimiento %{y:.1f}%<extra></extra>'))
+
+    ms, mv = resultado['max_sharpe'], resultado['min_volatilidad']
+    tasa = resultado['tasa_libre']
+    # Línea del mercado de capitales: combinaciones de la tasa libre de riesgo con el máximo Sharpe.
+    x_fin = frontera['volatilidad'].max() * 1.1 * pct
+    fig.add_trace(go.Scatter(
+        x=[0, x_fin], y=[tasa * pct, (tasa + ms['sharpe'] * x_fin / pct) * pct], mode='lines',
+        name='Línea del mercado de capitales', line=dict(color=PALETA['suave'], dash='dot', width=1.5),
+        hoverinfo='skip'))
+    fig.add_trace(go.Scatter(
+        x=frontera['volatilidad'] * pct, y=frontera['rendimiento'] * pct, mode='lines', name='Frontera eficiente',
+        line=dict(color=PALETA['primario'], width=3), customdata=frontera['sharpe'],
+        hovertemplate='Volatilidad %{x:.1f}%<br>Rendimiento %{y:.1f}%<br>Sharpe %{customdata:.2f}<extra></extra>'))
+    for cartera, nombre, color, simbolo in ((mv, 'Mínima volatilidad', COLORES_COMPONENTES[2], 'diamond'),
+                                            (ms, 'Máximo Sharpe', COLORES_COMPONENTES[0], 'star')):
+        fig.add_trace(go.Scatter(
+            x=[cartera['volatilidad'] * pct], y=[cartera['rendimiento'] * pct], mode='markers', name=nombre,
+            marker=dict(size=17, symbol=simbolo, color=color, line=dict(width=1.5, color='rgba(255,255,255,0.8)')),
+            hovertemplate=f'<b>{nombre}</b><br>Volatilidad %{{x:.1f}}%<br>Rendimiento %{{y:.1f}}%'
+                          f'<br>Sharpe {cartera["sharpe"]:.2f}<extra></extra>'))
+    if elegida is not ms and elegida is not mv:
+        fig.add_trace(go.Scatter(
+            x=[elegida['volatilidad'] * pct], y=[elegida['rendimiento'] * pct], mode='markers', name='Cartera elegida',
+            marker=dict(size=15, symbol='circle-open', color=PALETA['primario'], line=dict(width=3)),
+            hovertemplate='<b>Cartera elegida</b><br>Volatilidad %{x:.1f}%<br>Rendimiento %{y:.1f}%<extra></extra>'))
+    fig.update_layout(xaxis_title='Volatilidad anual (%)', yaxis_title='Rendimiento anual esperado (%)',
+                      hovermode='closest')
+    fig.update_xaxes(rangemode='tozero')
+    return aplicar_estilo_grafico(fig, altura=460, leyenda_abajo=True)
+
+
+def grafico_pesos_cartera(pesos, nombres=None, maximo=15):
+    """Barras horizontales con el peso de cada activo de una cartera ({ticker: peso}).
+    Muestra los `maximo` mayores y suma el resto en una barra "Otros"."""
+    nombres = dict(nombres or {})
+    datos = pd.DataFrame({'Ticker': list(pesos), 'Peso': [p * 100 for p in pesos.values()]})
+    datos = datos[datos['Peso'] >= 0.05].sort_values('Peso', ascending=False)
+    if len(datos) > maximo:
+        resto = datos.iloc[maximo:]
+        etiqueta = f'Otros ({len(resto)})'
+        nombres[etiqueta] = ', '.join(resto['Ticker'].head(12)) + ('…' if len(resto) > 12 else '')
+        datos = pd.concat([datos.iloc[:maximo], pd.DataFrame({'Ticker': [etiqueta], 'Peso': [resto['Peso'].sum()]})])
+    datos = datos.iloc[::-1]
+    fig = go.Figure(go.Bar(
+        x=datos['Peso'], y=datos['Ticker'], orientation='h',
+        marker_color=[PALETA['suave'] if t.startswith('Otros (') else PALETA['primario'] for t in datos['Ticker']],
+        text=[f'{p:.1f}%' for p in datos['Peso']], textposition='outside', cliponaxis=False,
+        customdata=[nombres.get(t, '') for t in datos['Ticker']],
+        hovertemplate='<b>%{y}</b> %{customdata}<br>%{x:.1f}% de la cartera<extra></extra>'))
+    fig.update_layout(xaxis_title='Peso (%)', yaxis_title=None, showlegend=False)
+    fig.update_xaxes(range=[0, max(datos['Peso'].max() * 1.18, 5)] if not datos.empty else None)
+    return aplicar_estilo_grafico(fig, altura=max(220, 30 * len(datos) + 90))

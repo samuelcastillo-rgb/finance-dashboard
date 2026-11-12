@@ -4,6 +4,7 @@ import streamlit as st
 from dashboard.config import COLUMNAS_EXPLORADOR_ACCIONES, NOTA_REESCALADO
 from dashboard.explorador import explorador_metricas
 from dashboard.formato import _f
+from dashboard.frontera import mostrar_frontera
 from dashboard.graficos import (
     generar_grafico_tendencia_6m,
     grafico_contribuciones,
@@ -56,8 +57,8 @@ def mostrar(df_stocks, n_stocks_universo, filtros, precios_cierre):
         mostrar_kpis(kpis_stk)
         st.write("")
 
-        s_res, s_score, s_mercado, s_explorar, s_datos = st.tabs(
-            ["Resumen", "Desglose del score", "Mercado", "Explorador", "Datos"])
+        s_res, s_score, s_mercado, s_explorar, s_optimo, s_datos = st.tabs(
+            ["Resumen", "Desglose del score", "Mercado", "Explorador", "Portafolio óptimo", "Datos"])
 
         with s_res:
             izq, der = st.columns([2.2, 1])
@@ -124,6 +125,9 @@ def mostrar(df_stocks, n_stocks_universo, filtros, precios_cierre):
                 explorador_metricas(df_stocks, COLUMNAS_EXPLORADOR_ACCIONES, nombre_col='Empresa', key='explorador_stk',
                                     inicial={'tipo': 'dispersion', 'x': 'Debt_to_Equity', 'y': 'ROIC_%',
                                              'color': 'Sector', 'tamano': 'EBITDA_MUSD'})
+
+        with s_optimo:
+            mostrar_frontera('stock_list', 'acciones', df_stocks)
 
         with s_datos:
             mostrar_tabla(

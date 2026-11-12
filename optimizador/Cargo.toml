@@ -1,0 +1,19 @@
+[package]
+name = "optimizador"
+version = "1.0.0"
+edition = "2024"
+description = "Frontera eficiente de Markowitz (solo compras, con peso máximo por activo) para el proceso diario."
+publish = false
+
+[[bin]]
+name = "frontera"
+path = "src/main.rs"
+
+# Sin dependencias externas: el resolvedor (FISTA con proyección al símplex acotado),
+# la contracción de Ledoit-Wolf y la salida JSON están escritos aquí mismo.
+[dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

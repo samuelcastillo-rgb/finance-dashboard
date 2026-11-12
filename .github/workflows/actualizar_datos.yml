@@ -22,6 +22,12 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
+      # Optimizador de la frontera eficiente (Rust). La versión la fija optimizador/rust-toolchain.toml.
+      - name: Compilar optimizador (Rust)
+        run: |
+          rustup toolchain install 1.97.0 --profile minimal
+          cd optimizador && cargo build --release
+
       - name: Configurar conexión a la base de datos
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -29,5 +35,5 @@ jobs:
           mkdir -p .streamlit
           printf '[connections.postgresql]\nurl = "%s"\n' "$DATABASE_URL" > .streamlit/secrets.toml
 
-      - name: Actualizar precios y metadatos
+      - name: Actualizar precios, métricas y frontera eficiente
         run: python -m scripts.actualizar_datos
