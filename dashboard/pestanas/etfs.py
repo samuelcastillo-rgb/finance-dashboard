@@ -4,6 +4,7 @@ import streamlit as st
 from dashboard.config import COLUMNAS_EXPLORADOR_ETFS, NOTA_REESCALADO
 from dashboard.explorador import explorador_metricas
 from dashboard.formato import _f
+from dashboard.frontera import mostrar_frontera
 from dashboard.graficos import (
     generar_grafico_tendencia_6m,
     grafico_contribuciones,
@@ -59,8 +60,8 @@ def mostrar(df_etfs, n_etfs_universo, filtros, precios_cierre):
         mostrar_kpis(kpis_etf)
         st.write("")
 
-        sub_res, sub_score, sub_mercado, sub_explorar, sub_datos = st.tabs(
-            ["Resumen", "Desglose del score", "Mercado", "Explorador", "Datos"])
+        sub_res, sub_score, sub_mercado, sub_explorar, sub_optimo, sub_datos = st.tabs(
+            ["Resumen", "Desglose del score", "Mercado", "Explorador", "Portafolio óptimo", "Datos"])
 
         with sub_res:
             izq, der = st.columns([2.2, 1])
@@ -127,6 +128,9 @@ def mostrar(df_etfs, n_etfs_universo, filtros, precios_cierre):
                 explorador_metricas(df_etfs, COLUMNAS_EXPLORADOR_ETFS, nombre_col='Nombre', key='explorador_etf',
                                     inicial={'tipo': 'dispersion', 'x': 'Volatilidad_%', 'y': 'CAGR_%',
                                              'color': 'Score_Final', 'tamano': 'AUM_BUSD'})
+
+        with sub_optimo:
+            mostrar_frontera('etf_list', 'ETFs', df_etfs)
 
         with sub_datos:
             mostrar_tabla(

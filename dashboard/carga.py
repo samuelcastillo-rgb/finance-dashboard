@@ -34,6 +34,12 @@ def cargar_metricas_guardadas():
     return almacenamiento.cargar_metricas()
 
 
+@st.cache_data(ttl=600, show_spinner=False)
+def cargar_frontera_guardada(clave):
+    """Frontera eficiente que calculó el proceso diario (optimizador en Rust): (resultado, fecha)."""
+    return almacenamiento.cargar_frontera(clave)
+
+
 @st.cache_data(ttl=600, show_spinner="Leyendo precios guardados…")
 def leer_precios_guardados(universo_tuple):
     return almacenamiento.cargar_precios(list(universo_tuple))

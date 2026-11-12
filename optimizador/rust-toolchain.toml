@@ -1,0 +1,5 @@
+# Misma versión de Rust en tu máquina, en CI y en el proceso diario.
+[toolchain]
+channel = "1.97.0"
+targets = []
+components = ["clippy", "rustfmt"]
