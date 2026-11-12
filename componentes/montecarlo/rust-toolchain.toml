@@ -1,0 +1,5 @@
+# Misma versión de Rust en tu máquina y en CI: así el .wasm compilado es idéntico byte a byte.
+[toolchain]
+channel = "1.97.0"
+targets = ["wasm32-unknown-unknown"]
+components = ["clippy", "rustfmt"]

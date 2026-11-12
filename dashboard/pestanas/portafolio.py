@@ -8,12 +8,14 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
-from dashboard.carga import precios_recientes
+from dashboard.carga import descargar_precios_cierre, precios_recientes
 from dashboard.formato import _color_variacion, _mapear, _pct, _usd
 from dashboard.graficos import grafico_ganancia_por_ticker, grafico_pesos
+from dashboard.montecarlo import simulacion_montecarlo
 from dashboard.tarjetas import mostrar_kpis, titulo_seccion
 from finanzas import almacenamiento
 from finanzas import portafolio as pf
+from finanzas.montecarlo import preparar_entrada
 
 
 def clave_portafolio():
@@ -77,6 +79,24 @@ def editor_posiciones():
         elif st.session_state.get('aviso_portafolio'):
             col_aviso.success(st.session_state.pop('aviso_portafolio'))
     return limpias
+
+
+def mostrar_montecarlo(resumen):
+    """Simulación Monte Carlo del valor futuro de la cartera (motor en Rust + WebAssembly)."""
+    with st.container(border=True):
+        titulo_seccion("Simulación Monte Carlo",
+                       "Miles de escenarios posibles para el valor de tu cartera, a partir de cómo se "
+                       "movieron sus tickers en los últimos 5 años. No es una predicción: supone que el "
+                       "futuro se parece al pasado y que no compras ni vendes.")
+        valores = dict(zip(resumen['Ticker'], resumen['Valor_USD'], strict=True))
+        precios = descargar_precios_cierre(tuple(valores))
+        entrada = preparar_entrada(precios, valores)
+        if entrada['excluidos']:
+            st.caption("No incluidos: " + " · ".join(f"{t} ({motivo})" for t, motivo in entrada['excluidos'].items()))
+        if not entrada['tickers']:
+            st.info("Ningún ticker tiene al menos 1 año de precios históricos para simular.")
+            return
+        simulacion_montecarlo(entrada, key='montecarlo_portafolio')
 
 
 def mostrar_portafolio():
@@ -156,6 +176,8 @@ def mostrar_portafolio():
                 'Ganancia %': '{:+.2f}%'}, na_rep='—')
             estilo = _mapear(estilo, _color_variacion, ['Ganancia USD', 'Ganancia %'])
             st.dataframe(estilo, hide_index=True, width='stretch')
+
+        mostrar_montecarlo(resumen)
     else:
         st.info("Agrega tus compras en la tabla de arriba para ver el valor, la ganancia y la distribución "
                 "de tu cartera. El simulador de abajo funciona aunque todavía no tengas compras.")

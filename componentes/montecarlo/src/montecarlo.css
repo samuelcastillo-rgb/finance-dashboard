@@ -1,0 +1,61 @@
+/* Estilos de la simulación Monte Carlo. Igual que el explorador: solo currentColor y
+   mezclas translúcidas para heredar el tema activo de Streamlit (claro u oscuro). */
+:host, .montecarlo {
+  font-family: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.montecarlo { position: relative; color: inherit; font-size: 14px; }
+.montecarlo.calculando .kpis, .montecarlo.calculando .lienzo { opacity: .45; transition: opacity .15s; }
+.controles { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; margin-bottom: 12px; }
+.campo { display: flex; flex-direction: column; gap: 4px; min-width: 130px; flex: 1 1 130px; max-width: 240px; }
+.campo-titulo { font-size: 12px; font-weight: 600; opacity: .7; }
+select, .boton {
+  font: inherit; color: inherit; padding: 7px 10px; border-radius: 8px; cursor: pointer;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+}
+select:hover, select:focus, .boton:hover, .boton:focus-visible { border-color: #1dbe83; outline: none; }
+option { color: #0F172A; background: #fff; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.kpi {
+  padding: 10px 12px; border-radius: 10px;
+  background: color-mix(in srgb, currentColor 4%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+.kpi-titulo { font-size: 12px; font-weight: 600; opacity: .7; }
+.kpi-valor { font-size: 20px; font-weight: 700; margin: 2px 0; font-variant-numeric: tabular-nums; }
+.kpi-valor.sube { color: #1dbe83; }
+.kpi-valor.baja { color: #EF4444; }
+.kpi-detalle { font-size: 12px; opacity: .7; line-height: 1.35; }
+.subtitulo { font-size: 13.5px; font-weight: 700; margin: 6px 0 4px; }
+.subtitulo:empty { display: none; }
+.lienzo { width: 100%; overflow: hidden; }
+.lienzo svg { display: block; overflow: visible; }
+.rejilla { stroke: currentColor; stroke-opacity: .09; }
+.referencia { stroke: currentColor; stroke-opacity: .55; stroke-dasharray: 5 5; }
+.referencia-v { stroke: currentColor; stroke-opacity: .8; stroke-width: 1.5; stroke-dasharray: 5 4; }
+.guia { stroke: currentColor; stroke-opacity: .35; }
+.punto-guia { stroke: var(--st-background-color, #fff); stroke-width: 2; pointer-events: none; }
+.tick { fill: currentColor; fill-opacity: .68; font-size: 12px; font-variant-numeric: tabular-nums; }
+.valor { fill: currentColor; fill-opacity: .85; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;
+  paint-order: stroke; stroke: var(--st-background-color, transparent); stroke-width: 3px; stroke-linejoin: round; }
+.barra { transition: opacity .1s; }
+.barra.activa { opacity: .7; }
+.zona { fill: transparent; cursor: crosshair; }
+.leyenda { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font-size: 12.5px; margin: 6px 0 10px; }
+.leyenda:empty { display: none; }
+.leyenda-item { display: inline-flex; align-items: center; gap: 6px; }
+.muestra-linea { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
+.muestra-banda { width: 18px; height: 10px; border-radius: 3px; display: inline-block; }
+.pie { font-size: 12px; opacity: .65; margin-top: 8px; min-height: 16px; }
+.tooltip {
+  display: none; position: absolute; z-index: 10; pointer-events: none; min-width: 190px; max-width: 280px;
+  padding: 8px 10px; border-radius: 8px; font-size: 12.5px; line-height: 1.45;
+  background: var(--st-secondary-background-color, color-mix(in srgb, currentColor 8%, Canvas));
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  box-shadow: 0 6px 20px rgba(0,0,0,.18);
+}
+.tt-titulo { font-weight: 700; margin-bottom: 4px; }
+.tt-fila { display: flex; justify-content: space-between; gap: 14px; }
+.tt-k { opacity: .7; }
+.tt-v { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.vacio { padding: 40px 12px; text-align: center; opacity: .7; }

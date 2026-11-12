@@ -1,0 +1,17 @@
+{
+  "name": "montecarlo-portafolio",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Componente de Streamlit (components v2) con la simulación Monte Carlo del portafolio en Rust + WebAssembly.",
+  "type": "module",
+  "scripts": {
+    "build:wasm": "cargo build --release --target wasm32-unknown-unknown --manifest-path rust/Cargo.toml",
+    "build": "npm run build:wasm && esbuild src/montecarlo.ts --bundle --format=esm --target=es2020 --minify --loader:.wasm=binary --outfile=dist/montecarlo.js && esbuild src/montecarlo.css --minify --outfile=dist/montecarlo.css",
+    "typecheck": "tsc --noEmit",
+    "test": "cargo test --release --manifest-path rust/Cargo.toml"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.0",
+    "typescript": "5.7.3"
+  }
+}
