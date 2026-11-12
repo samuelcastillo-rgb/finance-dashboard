@@ -14,7 +14,7 @@ from dashboard.carga import (  # noqa: E402
     descargar_precios_cierre,
 )
 from dashboard.estilos import aplicar_estilos  # noqa: E402
-from dashboard.pestanas import acciones, etfs, portafolio  # noqa: E402
+from dashboard.pestanas import acciones, comparar, etfs, portafolio  # noqa: E402
 from dashboard.tarjetas import encabezado  # noqa: E402
 
 aplicar_estilos()
@@ -27,7 +27,8 @@ df_etfs = cargar_datos_etfs(tuple(st.session_state.etf_list), precios_cierre)
 df_stocks = cargar_datos_acciones(tuple(st.session_state.stock_list), precios_cierre)
 n_etfs_universo, n_stocks_universo = len(df_etfs), len(df_stocks)
 
-# Los filtros se aplican después de calcular el score
+# Los filtros se aplican después de calcular el score (Comparar usa las tablas completas)
+df_etfs_todos, df_stocks_todos = df_etfs, df_stocks
 df_etfs, df_stocks, filtros = barra_lateral.mostrar(df_etfs, df_stocks)
 
 # Fecha de los datos: la del último proceso diario si se leyó de la base
@@ -38,12 +39,14 @@ else:
     texto_actualizado = f"Actualizado {st.session_state.ultima_actualizacion:%d/%m/%Y %H:%M}"
 encabezado(texto_actualizado)
 
-tab_etf, tab_stock, tab_portafolio = st.tabs([f"📊 ETFs ({len(st.session_state.etf_list)})",
-                                             f"🏢 Acciones ({len(st.session_state.stock_list)})",
-                                             "💼 Mi portafolio"])
+tab_etf, tab_stock, tab_comparar, tab_portafolio = st.tabs([f"📊 ETFs ({len(st.session_state.etf_list)})",
+                                                           f"🏢 Acciones ({len(st.session_state.stock_list)})",
+                                                           "⚖️ Comparar", "💼 Mi portafolio"])
 with tab_etf:
     etfs.mostrar(df_etfs, n_etfs_universo, filtros, precios_cierre)
 with tab_stock:
     acciones.mostrar(df_stocks, n_stocks_universo, filtros, precios_cierre)
+with tab_comparar:
+    comparar.mostrar(df_etfs_todos, df_stocks_todos, precios_cierre)
 with tab_portafolio:
     portafolio.mostrar()

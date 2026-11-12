@@ -3,8 +3,8 @@
 # pero también se puede correr a mano: python -m scripts.actualizar_datos).
 #
 # 1. Lee la lista de tickers de la base de datos.
-# 2. Descarga 5 años de precios de cierre ajustados (de los tickers analizados y de los
-#    del portafolio personal) y los guarda en precios_diarios.
+# 2. Descarga 5 años de precios de cierre ajustados (de los tickers analizados, de los
+#    del portafolio personal y del S&P 500) y los guarda en precios_diarios.
 # 3. Calcula el registro de cada ticker (nombre, categoría/sector, fundamentales,
 #    ratios de estados financieros) con datos_mercado.py y lo guarda en la tabla
 #    metricas. Esto también actualiza los metadatos. Si Yahoo falla con un ticker,
@@ -26,6 +26,7 @@ import yfinance as yf
 
 from finanzas import almacenamiento, frontera
 from finanzas import datos_mercado as dm
+from finanzas.comparar import INDICE_REFERENCIA
 
 PERIODO_PRECIOS = "5y"  # el mismo periodo que usa dashboard/carga.py
 
@@ -107,7 +108,9 @@ def main():
         return 1
 
     # También los precios de los tickers del portafolio personal que no estén en las listas
-    precios = actualizar_precios(list(dict.fromkeys(tickers + almacenamiento.tickers_de_posiciones())))
+    # y el S&P 500, que la pestaña Comparar usa como referencia.
+    precios = actualizar_precios(list(dict.fromkeys(
+        tickers + almacenamiento.tickers_de_posiciones() + [INDICE_REFERENCIA])))
     con_precios = len(precios.columns)
 
     n_ok, n_total = actualizar_metricas(etfs, acciones)

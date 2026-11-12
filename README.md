@@ -17,7 +17,8 @@ App publicada: https://finance-dashboard-sam.streamlit.app
 │   ├── almacenamiento.py     Postgres (Neon) o respaldo en datos/*.json
 │   ├── portafolio.py         Cálculos del portafolio personal
 │   ├── montecarlo.py         Datos de entrada de la simulación Monte Carlo
-│   └── frontera.py           Datos de entrada y ejecución del optimizador (Rust)
+│   ├── frontera.py           Datos de entrada y ejecución del optimizador (Rust)
+│   └── comparar.py           Rendimiento, beta y correlación de 1 año (pestaña Comparar)
 ├── dashboard/                Interfaz de Streamlit
 │   ├── config.py             Paleta, columnas del explorador, tickers por defecto
 │   ├── estilos.py            CSS global
@@ -29,7 +30,7 @@ App publicada: https://finance-dashboard-sam.streamlit.app
 │   ├── explorador.py         Puente Python del explorador (TypeScript)
 │   ├── montecarlo.py         Puente Python de la simulación (Rust + TypeScript)
 │   ├── frontera.py           Sub-pestaña "Portafolio óptimo" (frontera eficiente)
-│   └── pestanas/             etfs.py, acciones.py, portafolio.py
+│   └── pestanas/             etfs.py, acciones.py, comparar.py, portafolio.py
 ├── componentes/
 │   ├── explorador/           Explorador de métricas en TypeScript (src/ y dist/ compilado)
 │   └── montecarlo/           Simulación Monte Carlo: motor en Rust (rust/) → WebAssembly,
@@ -64,7 +65,7 @@ Se ejecutan **desde la carpeta raíz del proyecto** con `python -m` para que enc
 
 | Comando | Qué hace |
 |---|---|
-| `python -m scripts.actualizar_datos` | Proceso diario: precios, métricas y frontera eficiente a la base (lo corre la GitHub Action) |
+| `python -m scripts.actualizar_datos` | Proceso diario: precios (incluido el S&P 500), métricas y frontera eficiente a la base (lo corre la GitHub Action) |
 | `python -m scripts.actualizar_metadatos` | Regenera `datos/metadata_cache.json` (nombre, categoría, sector) |
 | `python -m scripts.sp500_extraction` | Lista de mayores alzas y bajas del S&P 500 contra su media de 50 días |
 

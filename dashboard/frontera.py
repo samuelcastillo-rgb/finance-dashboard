@@ -27,8 +27,9 @@ def mostrar_frontera(clave, nombre_plural, df):
         return
 
     nombres = {}
-    if df is not None and {'Ticker', 'Nombre'} <= set(df.columns):
-        nombres = dict(zip(df['Ticker'], df['Nombre'].fillna('').astype(str), strict=True))
+    columna = next((c for c in ('Nombre', 'Empresa') if df is not None and c in df.columns), None)
+    if columna and 'Ticker' in df.columns:
+        nombres = dict(zip(df['Ticker'], df[columna].fillna('').astype(str), strict=True))
     ms, mv = resultado['max_sharpe'], resultado['min_volatilidad']
 
     st.caption(

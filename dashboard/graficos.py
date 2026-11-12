@@ -243,3 +243,67 @@ def grafico_pesos_cartera(pesos, nombres=None, maximo=15):
     fig.update_layout(xaxis_title='Peso (%)', yaxis_title=None, showlegend=False)
     fig.update_xaxes(range=[0, max(datos['Peso'].max() * 1.18, 5)] if not datos.empty else None)
     return aplicar_estilo_grafico(fig, altura=max(220, 30 * len(datos) + 90))
+
+
+# Colores de la pestaña Comparar: uno fijo por posición (1.º, 2.º y 3.er ticker) para que cada
+# ticker conserve su color en todas las gráficas; el S&P 500 va en gris y punteado.
+COLORES_COMPARAR = [COLORES_COMPONENTES[0], COLORES_COMPONENTES[1], COLORES_COMPONENTES[3]]
+
+
+def grafico_comparar_precios(datos, colores, referencia=None, nombre_referencia='', en_porcentaje=True):
+    """Líneas de precio (USD) o rendimiento acumulado (%) de 1 año. `colores` = {ticker: color}."""
+    fig = go.Figure()
+    formato = '%{y:+.1f}%' if en_porcentaje else '$%{y:,.2f}'
+    for t in datos.columns:
+        es_ref = t == referencia
+        serie = datos[t].dropna()
+        fig.add_trace(go.Scatter(
+            x=serie.index, y=serie, mode='lines', name=nombre_referencia if es_ref else t,
+            line=dict(color=PALETA['suave'] if es_ref else colores.get(t), width=1.8 if es_ref else 2.4,
+                      dash='dot' if es_ref else 'solid'),
+            hovertemplate=f'<b>{nombre_referencia if es_ref else t}</b> {formato}<extra></extra>'))
+    if en_porcentaje:
+        fig.add_hline(y=0, line_color=PALETA['suave'], opacity=0.5, line_width=1)
+    fig.update_layout(hovermode='x unified', xaxis_title=None,
+                      yaxis_title='Rendimiento acumulado (%)' if en_porcentaje else 'Precio de cierre (USD)')
+    return aplicar_estilo_grafico(fig, altura=420, leyenda_abajo=True)
+
+
+def grafico_radar_comparado(filas, componentes, colores):
+    """Percentil de cada criterio del score para varios activos a la vez.
+    `filas` = [(ticker, fila del DataFrame)], `colores` = {ticker: color}."""
+    etiquetas = [c[0] for c in componentes]
+    cierre = etiquetas + [etiquetas[0]]
+    fig = go.Figure()
+    fig.add_trace(go.Scatterpolar(
+        r=[50] * len(cierre), theta=cierre, name='Mediana del universo', hoverinfo='skip',
+        line=dict(color=PALETA['suave'], dash='dot', width=1)))
+    for ticker, fila in filas:
+        valores = [float(v) if pd.notna(v) else None for v in (fila[c[1]] for c in componentes)]
+        fig.add_trace(go.Scatterpolar(
+            r=valores + [valores[0]], theta=cierre, name=ticker, fill='toself',
+            fillcolor=_con_transparencia(colores.get(ticker, PALETA['primario']), 0.12),
+            line=dict(color=colores.get(ticker), width=2.2),
+            hovertemplate=f'<b>{ticker}</b> · %{{theta}}<br>Percentil %{{r:.0f}}<extra></extra>'))
+    fig.update_layout(
+        polar=dict(radialaxis=dict(range=[0, 100], tickvals=[25, 50, 75, 100], tickfont=dict(size=10)),
+                   angularaxis=dict(tickfont=dict(size=11)), bgcolor='rgba(0,0,0,0)'),
+        showlegend=True, legend=dict(orientation='h', yanchor='top', y=-0.08, x=0),
+        font=dict(family=FUENTE_GRAFICOS), margin=dict(l=95, r=95, t=30, b=30), height=400)
+    return fig
+
+
+def _con_transparencia(color_hex, alfa):
+    h = color_hex.lstrip('#')
+    return f'rgba({int(h[0:2], 16)},{int(h[2:4], 16)},{int(h[4:6], 16)},{alfa})'
+
+
+def grafico_matriz_correlacion(matriz):
+    """Mapa de calor de una matriz de correlación ya calculada (escala fija de -1 a 1)."""
+    fig = px.imshow(matriz.round(2), text_auto='.2f', aspect='auto', zmin=-1, zmax=1,
+                    color_continuous_scale=ESCALA_CORR)
+    fig.update_traces(hovertemplate='%{y} vs %{x}: %{z:.2f}<extra></extra>', textfont=dict(size=14))
+    fig.update_coloraxes(colorbar=dict(title='ρ', thickness=12))
+    fig.update_xaxes(side='top', title=None)
+    fig.update_yaxes(title=None)
+    return aplicar_estilo_grafico(fig, altura=120 + 70 * len(matriz))
