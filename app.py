@@ -43,9 +43,9 @@ tab_etf, tab_stock, tab_comparar, tab_portafolio = st.tabs([f"📊 ETFs ({len(st
                                                            f"🏢 Acciones ({len(st.session_state.stock_list)})",
                                                            "⚖️ Comparar", "💼 Mi portafolio"])
 with tab_etf:
-    etfs.mostrar(df_etfs, n_etfs_universo, filtros, precios_cierre)
+    etfs.mostrar(df_etfs, n_etfs_universo, filtros, precios_cierre, (df_etfs_todos, df_stocks_todos))
 with tab_stock:
-    acciones.mostrar(df_stocks, n_stocks_universo, filtros, precios_cierre)
+    acciones.mostrar(df_stocks, n_stocks_universo, filtros, precios_cierre, (df_etfs_todos, df_stocks_todos))
 with tab_comparar:
     comparar.mostrar(df_etfs_todos, df_stocks_todos, precios_cierre)
 with tab_portafolio:

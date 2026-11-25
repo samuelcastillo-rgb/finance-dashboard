@@ -4,7 +4,7 @@ import streamlit as st
 from dashboard.config import COLUMNAS_EXPLORADOR_ACCIONES, NOTA_REESCALADO
 from dashboard.explorador import explorador_metricas
 from dashboard.formato import _f
-from dashboard.frontera import mostrar_frontera
+from dashboard.frontera import mostrar_portafolio_optimo
 from dashboard.graficos import (
     generar_grafico_tendencia_6m,
     grafico_contribuciones,
@@ -27,7 +27,7 @@ from dashboard.tarjetas import (
 from finanzas.score import COMPONENTES_ACCIONES, nivel_score
 
 
-def mostrar(df_stocks, n_stocks_universo, filtros, precios_cierre):
+def mostrar(df_stocks, n_stocks_universo, filtros, precios_cierre, tablas_completas=(None, None)):
     top_n = filtros.top_n
     sector_sel = filtros.sector_sel
     if not st.session_state.stock_list:
@@ -127,7 +127,7 @@ def mostrar(df_stocks, n_stocks_universo, filtros, precios_cierre):
                                              'color': 'Sector', 'tamano': 'EBITDA_MUSD'})
 
         with s_optimo:
-            mostrar_frontera('stock_list', 'acciones', df_stocks)
+            mostrar_portafolio_optimo('stock_list', 'acciones', df_stocks, tablas_completas)
 
         with s_datos:
             mostrar_tabla(
