@@ -42,6 +42,8 @@ NOMBRE_CONEXION = 'postgresql'
 
 # Clave en session_state / JSON  ->  valor de la columna "tipo" en la base
 TIPOS = {'etf_list': 'etf', 'stock_list': 'stock'}
+# Fronteras eficientes: una por lista y la combinada (ETFs + acciones + portafolio personal)
+TIPOS_FRONTERA = {**TIPOS, 'combinada': 'combinada'}
 
 SQL_CREAR_TABLA = """
 CREATE TABLE IF NOT EXISTS tickers (
@@ -384,12 +386,12 @@ def cargar_metricas():
 # Frontera eficiente (resultado del optimizador en Rust, uno por tipo de activo)
 # ------------------------------------------------------------------------------
 def guardar_frontera(clave, resultado, actualizado):
-    """Guarda el resultado de finanzas.frontera.calcular_frontera (clave = 'etf_list' o 'stock_list')."""
+    """Guarda el resultado de finanzas.frontera.calcular_frontera (clave de TIPOS_FRONTERA)."""
     with _conexion().session as s:
         s.execute(text(
             'INSERT INTO fronteras (tipo, datos, actualizado) VALUES (:tipo, :datos, :actualizado) '
             'ON CONFLICT (tipo) DO UPDATE SET datos = excluded.datos, actualizado = excluded.actualizado'
-        ), {'tipo': TIPOS[clave], 'datos': json.dumps(resultado, ensure_ascii=False, default=_a_json),
+        ), {'tipo': TIPOS_FRONTERA[clave], 'datos': json.dumps(resultado, ensure_ascii=False, default=_a_json),
             'actualizado': actualizado})
         s.commit()
 
@@ -401,7 +403,7 @@ def cargar_frontera(clave):
     try:
         with _conexion().session as s:
             fila = s.execute(text('SELECT datos, actualizado FROM fronteras WHERE tipo = :tipo'),
-                             {'tipo': TIPOS[clave]}).fetchone()
+                             {'tipo': TIPOS_FRONTERA[clave]}).fetchone()
     except Exception:
         return None, None
     if fila is None:

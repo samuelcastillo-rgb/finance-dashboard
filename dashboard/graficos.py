@@ -177,10 +177,16 @@ def grafico_ganancia_por_ticker(resumen):
     return aplicar_estilo_grafico(fig, altura=max(240, 34 * len(datos) + 90))
 
 
-def grafico_frontera(resultado, elegida, nombres=None):
+COLOR_REAL = COLORES_COMPONENTES[3]      # tu portafolio, en todas las gráficas de comparación
+COLOR_OPTIMO = COLORES_COMPONENTES[0]    # el mismo del máximo Sharpe en la frontera
+
+
+def grafico_frontera(resultado, elegida, nombres=None, real=None):
     """Frontera eficiente (línea), cada activo (puntos), las carteras de mínima volatilidad y
     máximo Sharpe, la línea del mercado de capitales y la cartera `elegida` resaltada.
-    `resultado` es lo que guarda el optimizador en Rust (finanzas/frontera.py)."""
+    `resultado` es lo que guarda el optimizador en Rust (finanzas/frontera.py).
+    `real` (opcional) es finanzas.frontera.comparar_con_optimo: agrega tu portafolio y su
+    distancia a la frontera con el mismo riesgo y con el mismo rendimiento."""
     nombres = nombres or {}
     pct = 100
     activos = pd.DataFrame(resultado['activos'])
@@ -216,6 +222,23 @@ def grafico_frontera(resultado, elegida, nombres=None):
             x=[elegida['volatilidad'] * pct], y=[elegida['rendimiento'] * pct], mode='markers', name='Cartera elegida',
             marker=dict(size=15, symbol='circle-open', color=PALETA['primario'], line=dict(width=3)),
             hovertemplate='<b>Cartera elegida</b><br>Volatilidad %{x:.1f}%<br>Rendimiento %{y:.1f}%<extra></extra>'))
+    if real is not None:
+        r = real['real']
+        x, y = r['volatilidad'] * pct, r['rendimiento'] * pct
+        # Distancia vertical (rendimiento que falta con el mismo riesgo) y horizontal (riesgo de más
+        # para el mismo rendimiento) hasta la frontera.
+        segmentos = [([x, x], [y, y + real['rendimiento_perdido'] * pct])]
+        if real['riesgo_extra'] is not None:
+            segmentos.append(([x, x - real['riesgo_extra'] * pct], [y, y]))
+        for i, (sx, sy) in enumerate(segmentos):
+            fig.add_trace(go.Scatter(x=sx, y=sy, mode='lines', name='Distancia a la frontera',
+                                     legendgroup='distancia', showlegend=i == 0, hoverinfo='skip',
+                                     line=dict(color=COLOR_REAL, dash='dash', width=2)))
+        fig.add_trace(go.Scatter(
+            x=[x], y=[y], mode='markers', name='Tu portafolio',
+            marker=dict(size=17, symbol='circle', color=COLOR_REAL, line=dict(width=2, color='rgba(255,255,255,0.9)')),
+            hovertemplate=f'<b>Tu portafolio</b><br>Volatilidad %{{x:.1f}}%<br>Rendimiento %{{y:.1f}}%'
+                          f'<br>Sharpe {r["sharpe"]:.2f}<extra></extra>'))
     fig.update_layout(xaxis_title='Volatilidad anual (%)', yaxis_title='Rendimiento anual esperado (%)',
                       hovermode='closest')
     fig.update_xaxes(rangemode='tozero')
@@ -243,6 +266,54 @@ def grafico_pesos_cartera(pesos, nombres=None, maximo=15):
     fig.update_layout(xaxis_title='Peso (%)', yaxis_title=None, showlegend=False)
     fig.update_xaxes(range=[0, max(datos['Peso'].max() * 1.18, 5)] if not datos.empty else None)
     return aplicar_estilo_grafico(fig, altura=max(220, 30 * len(datos) + 90))
+
+
+def grafico_pesos_comparados(pesos_real, pesos_optimo, nombre_optimo, nombres=None, maximo=15):
+    """Barras horizontales agrupadas: peso de cada ticker en tu portafolio y en la cartera óptima.
+    Muestra los `maximo` tickers con más peso en cualquiera de las dos y suma el resto en "Otros"."""
+    nombres = dict(nombres or {})
+    datos = pd.DataFrame({'Real': pd.Series(pesos_real, dtype=float),
+                          'Optimo': pd.Series(pesos_optimo, dtype=float)}).fillna(0.0) * 100
+    datos = datos[datos.max(axis=1) >= 0.05]
+    datos = datos.loc[datos.max(axis=1).sort_values(ascending=False).index]
+    if len(datos) > maximo:
+        resto = datos.iloc[maximo:]
+        etiqueta = f'Otros ({len(resto)})'
+        nombres[etiqueta] = ', '.join(resto.index[:12]) + ('…' if len(resto) > 12 else '')
+        datos = pd.concat([datos.iloc[:maximo], resto.sum().to_frame(etiqueta).T])
+    datos = datos.iloc[::-1]
+    fig = go.Figure()
+    for col, nombre, color in (('Optimo', nombre_optimo, COLOR_OPTIMO), ('Real', 'Tu portafolio', COLOR_REAL)):
+        fig.add_trace(go.Bar(
+            x=datos[col], y=datos.index, orientation='h', name=nombre, marker_color=color,
+            text=[f'{p:.1f}%' if p >= 0.05 else '' for p in datos[col]], textposition='outside', cliponaxis=False,
+            customdata=[nombres.get(t, '') for t in datos.index],
+            hovertemplate=f'<b>%{{y}}</b> %{{customdata}}<br>{nombre}: %{{x:.1f}}%<extra></extra>'))
+    fig.update_layout(barmode='group', bargap=0.25, bargroupgap=0.08, xaxis_title='Peso (%)', yaxis_title=None,
+                      legend_traceorder='reversed')
+    fig.update_xaxes(range=[0, max(datos.to_numpy().max() * 1.2, 5)] if not datos.empty else None)
+    return aplicar_estilo_grafico(fig, altura=max(260, 44 * len(datos) + 110), leyenda_abajo=True)
+
+
+def grafico_mezcla_tipos(mezclas):
+    """Barra 100 % apilada por cartera con el peso en ETFs, acciones y otros.
+    `mezclas` = {nombre de la cartera: {tipo: peso 0-1}}."""
+    colores = {'ETFs': COLORES_COMPONENTES[2], 'Acciones': COLORES_COMPONENTES[4], 'Otros': PALETA['suave']}
+    carteras = list(mezclas)[::-1]
+    fig = go.Figure()
+    for tipo, color in colores.items():
+        valores = [mezclas[c].get(tipo, 0.0) * 100 for c in carteras]
+        if not any(v > 0 for v in valores):
+            continue
+        fig.add_trace(go.Bar(
+            x=valores, y=carteras, orientation='h', name=tipo, marker_color=color,
+            text=[f'{v:.0f}%' if v >= 6 else '' for v in valores], textposition='inside', insidetextanchor='middle',
+            hovertemplate=f'<b>%{{y}}</b><br>{tipo}: %{{x:.1f}}%<extra></extra>'))
+    fig.update_layout(barmode='stack', bargap=0.35, xaxis_title=None, yaxis_title=None)
+    fig.update_xaxes(range=[0, 100], showticklabels=False, showgrid=False, zeroline=False)
+    fig = aplicar_estilo_grafico(fig, altura=150 + 46 * len(carteras), leyenda_abajo=True)
+    fig.update_layout(legend=dict(y=-0.08, traceorder='normal'))
+    return fig
 
 
 # Colores de la pestaña Comparar: uno fijo por posición (1.º, 2.º y 3.er ticker) para que cada

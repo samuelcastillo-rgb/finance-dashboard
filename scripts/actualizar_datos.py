@@ -9,9 +9,10 @@
 #    ratios de estados financieros) con datos_mercado.py y lo guarda en la tabla
 #    metricas. Esto también actualiza los metadatos. Si Yahoo falla con un ticker,
 #    se conserva su registro anterior.
-# 4. Calcula la frontera eficiente de los ETFs y de las acciones con el optimizador en
-#    Rust (optimizador/, hay que compilarlo antes: cargo build --release) y la guarda en
-#    la tabla fronteras. Si el programa no está compilado o falla, solo avisa.
+# 4. Calcula la frontera eficiente de los ETFs, de las acciones y de todo junto (más los
+#    tickers del portafolio personal) con el optimizador en Rust (optimizador/, hay que
+#    compilarlo antes: cargo build --release) y la guarda en la tabla fronteras.
+#    Si el programa no está compilado o falla, solo avisa.
 #
 # La app lee todo esto de la base, así que no consulta a Yahoo en cada visita.
 #
@@ -75,13 +76,17 @@ def actualizar_metricas(etfs, acciones):
     return n_ok, n_total
 
 
-def actualizar_fronteras(precios, etfs, acciones):
-    """Frontera eficiente de cada lista con el optimizador en Rust. Nunca hace fallar el proceso."""
+def actualizar_fronteras(precios, etfs, acciones, propios=()):
+    """Frontera eficiente de cada lista y de todo junto (ETFs + acciones + los tickers del
+    portafolio personal, para compararlo con su óptimo) con el optimizador en Rust.
+    Nunca hace fallar el proceso."""
     if not frontera.BINARIO.exists():
         print(f"AVISO: no está compilado el optimizador ({frontera.BINARIO}); se omite la frontera eficiente.")
         return
     ahora = datetime.now(UTC).replace(tzinfo=None)
-    for clave, tickers, nombre in (('etf_list', etfs, 'ETFs'), ('stock_list', acciones, 'acciones')):
+    combinada = list(dict.fromkeys([*etfs, *acciones, *propios]))
+    for clave, tickers, nombre in (('etf_list', etfs, 'ETFs'), ('stock_list', acciones, 'acciones'),
+                                   (frontera.CLAVE_COMBINADA, combinada, 'ETFs + acciones')):
         try:
             resultado = frontera.calcular_frontera(precios, tickers)
             almacenamiento.guardar_frontera(clave, resultado, ahora)
@@ -109,8 +114,8 @@ def main():
 
     # También los precios de los tickers del portafolio personal que no estén en las listas
     # y el S&P 500, que la pestaña Comparar usa como referencia.
-    precios = actualizar_precios(list(dict.fromkeys(
-        tickers + almacenamiento.tickers_de_posiciones() + [INDICE_REFERENCIA])))
+    propios = almacenamiento.tickers_de_posiciones()
+    precios = actualizar_precios(list(dict.fromkeys(tickers + propios + [INDICE_REFERENCIA])))
     con_precios = len(precios.columns)
 
     n_ok, n_total = actualizar_metricas(etfs, acciones)
@@ -118,7 +123,7 @@ def main():
         print("AVISO: Yahoo no devolvió datos de ningún ticker. Se conservan los registros guardados.")
 
     if con_precios > 0:
-        actualizar_fronteras(precios, etfs, acciones)
+        actualizar_fronteras(precios, etfs, acciones, propios)
 
     # Falla el proceso (y GitHub te avisa por correo) solo si no se pudo bajar ningún precio
     return 0 if con_precios > 0 else 1

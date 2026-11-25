@@ -4,7 +4,7 @@ import streamlit as st
 from dashboard.config import COLUMNAS_EXPLORADOR_ETFS, NOTA_REESCALADO
 from dashboard.explorador import explorador_metricas
 from dashboard.formato import _f
-from dashboard.frontera import mostrar_frontera
+from dashboard.frontera import mostrar_portafolio_optimo
 from dashboard.graficos import (
     generar_grafico_tendencia_6m,
     grafico_contribuciones,
@@ -27,7 +27,7 @@ from dashboard.tarjetas import (
 from finanzas.score import COMPONENTES_ETFS, nivel_score
 
 
-def mostrar(df_etfs, n_etfs_universo, filtros, precios_cierre):
+def mostrar(df_etfs, n_etfs_universo, filtros, precios_cierre, tablas_completas=(None, None)):
     top_n = filtros.top_n
     categoria_sel = filtros.categoria_sel
     if not st.session_state.etf_list:
@@ -130,7 +130,7 @@ def mostrar(df_etfs, n_etfs_universo, filtros, precios_cierre):
                                              'color': 'Score_Final', 'tamano': 'AUM_BUSD'})
 
         with sub_optimo:
-            mostrar_frontera('etf_list', 'ETFs', df_etfs)
+            mostrar_portafolio_optimo('etf_list', 'ETFs', df_etfs, tablas_completas)
 
         with sub_datos:
             mostrar_tabla(
